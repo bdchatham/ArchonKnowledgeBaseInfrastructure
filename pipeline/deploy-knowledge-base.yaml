@@ -41,7 +41,14 @@ spec:
   tasks:
     - name: deploy-to-argocd
       taskRef:
-        name: argocd-deployment
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: argocd-deployment
+          - name: namespace
+            value: tekton-pipelines
       params:
         - name: app-name
           value: $(params.app-name)
