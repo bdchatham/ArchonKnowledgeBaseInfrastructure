@@ -68,3 +68,5 @@ spec:
           value: "true"
         - name: create-namespace
           value: "true"
+        - name: kubectl-image
+          value: "bitnami/kubectl:latest"
