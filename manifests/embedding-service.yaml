@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: embedding-svc
+  labels:
+    app: embedding
+spec:
+  selector:
+    app: embedding
+  ports:
+    - port: 8000
+      targetPort: 8000
+      name: http

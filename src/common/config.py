@@ -11,14 +11,14 @@ from pydantic import Field
 class EmbeddingConfiguration(BaseSettings):
     """Configuration for embedding service connection.
     
-    The embedding_service_url points to the Agent's model server,
+    The embedding_service_url points to the internal embedding service,
     which provides the /v1/embeddings endpoint for vector generation.
-    This is a required dependency - the Knowledge Base cannot function
-    without access to an embedding service.
+    The Knowledge Base is self-contained with its own embedding service.
     """
     
     embedding_service_url: str = Field(
-        description="URL of the embedding service (e.g., http://vllm.archon-system.svc.cluster.local:8000)"
+        default="http://embedding-svc:8000",
+        description="URL of the embedding service"
     )
     embedding_model: str = Field(
         default="BAAI/bge-base-en-v1.5",

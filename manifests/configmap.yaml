@@ -3,8 +3,8 @@ kind: ConfigMap
 metadata:
   name: knowledge-base-config
 data:
-  # Required: Agent's embedding service URL
-  embedding_service_url: "http://vllm.archon-system.svc.cluster.local:8000"
+  # Internal embedding service URL (self-contained)
+  embedding_service_url: "http://embedding-svc:8000"
   embedding_model: "BAAI/bge-base-en-v1.5"
   
   # Storage configuration
@@ -22,17 +22,17 @@ data:
     [
       {
         "url": "https://github.com/bdchatham/ArchonAgent",
-        "branch": "main",
+        "branch": "mainline",
         "paths": [".kiro/docs"]
       },
       {
         "url": "https://github.com/bdchatham/AphexPlatformInfrastructure",
-        "branch": "main",
+        "branch": "mainline",
         "paths": [".kiro/docs"]
       },
       {
         "url": "https://github.com/bdchatham/ArchonKnowledgeBaseInfrastructure",
-        "branch": "main",
+        "branch": "mainline",
         "paths": [".kiro/docs"]
       }
     ]

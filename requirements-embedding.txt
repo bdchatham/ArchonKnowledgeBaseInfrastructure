@@ -1,0 +1,11 @@
+# Embedding service dependencies
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.5.0
+
+# Sentence transformers for embedding generation
+sentence-transformers>=2.2.0
+
+# PyTorch CPU version (smaller footprint)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch

@@ -16,6 +16,9 @@ resources:
   - postgres-service.yaml
   # Init job - runs after databases are ready
   - init-job.yaml
+  # Embedding service - must be ready before query/monitor
+  - embedding-deployment.yaml
+  - embedding-service.yaml
   # Application workloads
   - query-deployment.yaml
   - query-service.yaml
