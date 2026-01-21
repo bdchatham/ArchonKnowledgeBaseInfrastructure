@@ -42,6 +42,18 @@ The Knowledge Base depends on the Agent for embedding generation but operates in
 - Different teams to manage their own knowledge bases
 - Flexible scaling of storage vs. compute
 
+## Terminology
+
+| Term | Definition |
+|------|------------|
+| Agent | The vLLM model server providing embedding and inference capabilities |
+| Knowledge Base | This system - document storage and retrieval infrastructure |
+| Query Service | FastAPI application handling retrieval requests |
+| Monitor Service | CronJob that syncs documents from GitHub |
+| Chunk | A segment of a document stored with its embedding |
+| repo_file_path | Unique document identifier combining repo URL and file path |
+
 **Source**
-- `.kiro/specs/archon-knowledge-base-infrastructure/design.md` - System design
+- `src/query/main.py` - Query service implementation
+- `src/monitor/main.py` - Monitor service implementation
 - `manifests/` - Kubernetes deployment manifests
