@@ -1,0 +1,64 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: deploy-knowledge-base
+  namespace: pipeline-system
+  labels:
+    app.kubernetes.io/part-of: archon-knowledge-base
+spec:
+  description: >-
+    Deploys the Archon Knowledge Base infrastructure via ArgoCD.
+    
+    Prerequisites:
+    - Agent (vLLM model server) must be running in archon-system namespace
+    - The embedding_service_url in ConfigMap must point to the running Agent
+    
+    This pipeline creates an ArgoCD Application that syncs the knowledge base
+    manifests from Git, deploying Qdrant, PostgreSQL, Query service, and
+    Monitor CronJob to the archon-knowledge-base namespace.
+
+  params:
+    - name: git-url
+      type: string
+      description: Git repository URL containing the manifests
+      default: https://github.com/bdchatham/ArchonKnowledgeBaseInfrastructure
+    - name: git-revision
+      type: string
+      description: Git revision (branch, tag, or commit SHA)
+      default: main
+    - name: manifest-path
+      type: string
+      description: Path within the repository containing Kubernetes manifests
+      default: manifests
+    - name: app-name
+      type: string
+      description: Name of the ArgoCD Application
+      default: archon-knowledge-base
+    - name: target-namespace
+      type: string
+      description: Target namespace for deployment
+      default: archon-knowledge-base
+
+  tasks:
+    - name: deploy-to-argocd
+      taskRef:
+        name: argocd-deployment
+      params:
+        - name: app-name
+          value: $(params.app-name)
+        - name: repo-url
+          value: $(params.git-url)
+        - name: repo-revision
+          value: $(params.git-revision)
+        - name: manifest-path
+          value: $(params.manifest-path)
+        - name: target-namespace
+          value: $(params.target-namespace)
+        - name: auto-sync
+          value: "true"
+        - name: prune
+          value: "true"
+        - name: self-heal
+          value: "true"
+        - name: create-namespace
+          value: "true"
