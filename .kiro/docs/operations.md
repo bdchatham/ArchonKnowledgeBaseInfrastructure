@@ -6,9 +6,10 @@
 
 Before deploying the Knowledge Base:
 
-1. **Agent must be running** in `archon-system` namespace with embedding endpoint available
-2. **ArgoCD** must be installed in the cluster
-3. **Secrets must be configured** with actual values (GitHub token, PostgreSQL password)
+1. **ArgoCD** must be installed in the cluster
+2. **Secrets must be configured** with actual values (GitHub token, PostgreSQL password)
+
+The Knowledge Base is fully self-contained. No external services are required.
 
 ### Deployment via Tekton Pipeline
 
@@ -43,15 +44,26 @@ The Kustomization applies resources in this order:
 2. ConfigMap and Secrets
 3. StatefulSets (Qdrant, PostgreSQL)
 4. Init Job (creates schemas)
-5. Query Deployment and Service
-6. Monitor CronJob
-7. Ingress
+5. Embedding Deployment and Service
+6. Query Deployment and Service
+7. Monitor CronJob
+8. Ingress
 
 ### Post-Deployment Verification
 
 ```bash
 # Check all pods are running
 kubectl get pods -n archon-knowledge-base
+
+# Expected pods:
+# - embedding-*
+# - query-* (2 replicas)
+# - qdrant-0
+# - postgres-0
+
+# Verify Embedding service health
+kubectl port-forward svc/embedding-svc 8000:8000 -n archon-knowledge-base
+curl http://localhost:8000/ready
 
 # Verify Query service health
 kubectl port-forward svc/query 8080:8080 -n archon-knowledge-base
@@ -61,18 +73,21 @@ curl http://localhost:8080/ready
 curl -k https://archon-kb.home.local/health
 ```
 
+
 ## Monitoring
 
 ### Health Endpoints
 
-| Endpoint | Purpose | Success Response |
-|----------|---------|------------------|
-| `/health` | Liveness check | `{"status": "healthy"}` |
-| `/ready` | Readiness check | `{"status": "ready", ...}` |
-| `/metrics` | Basic metrics | Service info |
+| Service | Endpoint | Purpose | Success Response |
+|---------|----------|---------|------------------|
+| Embedding | `/health` | Liveness check | `{"status": "healthy"}` |
+| Embedding | `/ready` | Model loaded check | `{"status": "ready", "model": "..."}` |
+| Query | `/health` | Liveness check | `{"status": "healthy"}` |
+| Query | `/ready` | Readiness check | `{"status": "ready", ...}` |
 
 ### Key Metrics to Watch
 
+- Embedding service pod restarts and memory usage
 - Query service pod restarts
 - Monitor CronJob success/failure rate
 - Qdrant collection size and query latency
@@ -80,15 +95,20 @@ curl -k https://archon-kb.home.local/health
 
 ### Kubernetes Probes
 
-Query service has configured probes:
+Embedding service probes:
+- **Liveness**: `/health` every 30s, initial delay 30s
+- **Readiness**: `/ready` every 10s, initial delay 60s
+
+Query service probes:
 - **Liveness**: `/health` every 30s, initial delay 10s
 - **Readiness**: `/ready` every 10s, initial delay 5s
-
-Readiness fails if embedding service or Qdrant is unreachable.
 
 ### Logs
 
 ```bash
+# Embedding service logs
+kubectl logs -l app=embedding -n archon-knowledge-base
+
 # Query service logs
 kubectl logs -l app=query -n archon-knowledge-base
 
@@ -104,6 +124,28 @@ kubectl logs -l app=postgres -n archon-knowledge-base
 
 ## Runbooks
 
+### Embedding Service Not Ready
+
+**Symptom**: Embedding `/ready` returns 503
+
+**Diagnosis**:
+```bash
+kubectl logs -l app=embedding -n archon-knowledge-base | grep -i error
+```
+
+**Common Causes**:
+1. Model not loaded - Check memory allocation (requires ~2GB)
+2. OOM killed - Check pod events and increase memory limits
+
+**Resolution**:
+```bash
+# Check pod events
+kubectl describe pod -l app=embedding -n archon-knowledge-base
+
+# Restart embedding service
+kubectl rollout restart deployment/embedding -n archon-knowledge-base
+```
+
 ### Query Service Returns 503
 
 **Symptom**: `/ready` returns 503, `/v1/retrieve` fails
@@ -114,14 +156,15 @@ kubectl logs -l app=query -n archon-knowledge-base | grep -i error
 ```
 
 **Common Causes**:
-1. Embedding service unavailable - Check Agent pods in `archon-system`
+1. Embedding service unavailable - Check embedding pod status
 2. Qdrant unreachable - Check Qdrant pod status
 3. Collection doesn't exist - Re-run init job
 
 **Resolution**:
 ```bash
-# Verify Agent is running
-kubectl get pods -n archon-system
+# Verify Embedding service is healthy
+kubectl port-forward svc/embedding-svc 8000:8000 -n archon-knowledge-base
+curl http://localhost:8000/ready
 
 # Verify Qdrant is healthy
 kubectl exec -it qdrant-0 -n archon-knowledge-base -- curl localhost:6333/health
@@ -142,7 +185,7 @@ kubectl logs job/monitor-<timestamp> -n archon-knowledge-base
 
 **Common Causes**:
 1. Invalid GitHub token - Check secret value
-2. Embedding service timeout - Check Agent health
+2. Embedding service timeout - Check embedding pod health
 3. PostgreSQL connection failed - Check postgres pod
 
 **Resolution**:
@@ -197,7 +240,7 @@ CREATE INDEX IF NOT EXISTS idx_last_checked ON document_state(last_checked);
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `embedding_service_url` | `http://vllm.archon-system.svc.cluster.local:8000` | Agent embedding endpoint |
+| `embedding_service_url` | `http://embedding-svc:8000` | Internal Embedding Service endpoint |
 | `embedding_model` | `BAAI/bge-base-en-v1.5` | Embedding model name |
 | `vector_db_url` | `http://qdrant:6333` | Qdrant URL |
 | `collection_name` | `archon-docs` | Qdrant collection |
@@ -213,7 +256,7 @@ Edit the ConfigMap to add repositories:
 ```yaml
 repositories: |
   [
-    {"url": "https://github.com/org/repo", "branch": "main", "paths": [".kiro/docs"]}
+    {"url": "https://github.com/org/repo", "branch": "mainline", "paths": [".kiro/docs"]}
   ]
 ```
 
@@ -226,6 +269,7 @@ kubectl delete job -l app=monitor -n archon-knowledge-base
 **Source**
 - `manifests/configmap.yaml` - Configuration
 - `manifests/secrets.yaml` - Secrets template
+- `manifests/embedding-deployment.yaml` - Embedding deployment with probes
 - `manifests/query-deployment.yaml` - Query deployment with probes
 - `manifests/monitor-cronjob.yaml` - Monitor CronJob
 - `manifests/init-job.yaml` - Schema initialization

@@ -2,16 +2,22 @@
 
 ## Overview
 
-The Query Service exposes a REST API for semantic document retrieval. The primary endpoint accepts natural language queries and returns relevant document chunks ranked by similarity score.
+The Knowledge Base exposes two REST APIs:
+- **Query Service**: Semantic document retrieval for RAG workflows
+- **Embedding Service**: OpenAI-compatible embedding generation
 
-The API is designed for internal use by the Agent for RAG augmentation, but can also be called directly by other services.
+Both APIs are designed for internal use but can be accessed externally via Ingress.
 
-## Base URL
+## Base URLs
 
+### Query Service
 - **Internal**: `http://query.archon-knowledge-base.svc.cluster.local:8080`
 - **External**: `https://archon-kb.home.local` (via Ingress)
 
-## Endpoints
+### Embedding Service
+- **Internal**: `http://embedding-svc.archon-knowledge-base.svc.cluster.local:8000`
+
+## Query Service Endpoints
 
 ### POST /v1/retrieve
 
@@ -60,22 +66,19 @@ Retrieve relevant document chunks for a natural language query.
 |--------|-----------|----------|
 | 503 | Embedding service unavailable | `{"detail": "Embedding service unavailable"}` |
 | 503 | Vector store unavailable | `{"detail": "Vector store unavailable"}` |
-| 503 | Service not initialized | `{"detail": "Service not initialized"}` |
 
 ### GET /health
 
-Liveness check endpoint. Returns 200 if the service process is running.
+Liveness check endpoint.
 
 **Response** (200 OK):
 ```json
-{
-  "status": "healthy"
-}
+{"status": "healthy"}
 ```
 
 ### GET /ready
 
-Readiness check endpoint. Returns 200 only if the service can handle requests (embedding service and vector store are reachable).
+Readiness check endpoint. Returns 200 only if dependencies are reachable.
 
 **Response** (200 OK):
 ```json
@@ -88,32 +91,91 @@ Readiness check endpoint. Returns 200 only if the service can handle requests (e
 
 **Error Response** (503):
 ```json
+{"detail": "Embedding service not ready"}
+```
+
+
+## Embedding Service Endpoints
+
+### POST /v1/embeddings
+
+Generate embeddings for input text(s). OpenAI-compatible format.
+
+**Request Body**:
+```json
 {
-  "detail": "Embedding service not ready"
+  "input": "How does deployment work?",
+  "model": "BAAI/bge-base-en-v1.5"
 }
 ```
 
-### GET /metrics
-
-Basic service metrics endpoint.
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `input` | string or array | Yes | Text(s) to embed |
+| `model` | string | No | Model name (ignored, uses configured model) |
 
 **Response** (200 OK):
 ```json
 {
-  "service": "archon-knowledge-base-query",
-  "version": "1.0.0"
+  "object": "list",
+  "data": [
+    {
+      "object": "embedding",
+      "embedding": [0.123, -0.456, ...],
+      "index": 0
+    }
+  ],
+  "model": "BAAI/bge-base-en-v1.5",
+  "usage": {
+    "prompt_tokens": 5,
+    "total_tokens": 5
+  }
 }
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data` | array | Embedding results |
+| `data[].embedding` | array | 384-dimensional vector |
+| `data[].index` | integer | Index of input text |
+| `model` | string | Model used |
+| `usage` | object | Token usage (approximate) |
+
+### GET /health
+
+Liveness check endpoint.
+
+**Response** (200 OK):
+```json
+{"status": "healthy"}
+```
+
+### GET /ready
+
+Readiness check. Returns 200 only if model is loaded.
+
+**Response** (200 OK):
+```json
+{
+  "status": "ready",
+  "model": "BAAI/bge-base-en-v1.5"
+}
+```
+
+**Error Response** (503):
+```json
+{"detail": "Model not loaded"}
 ```
 
 ## Authentication
 
-The API currently does not require authentication. Access control is managed at the network level:
+The APIs currently do not require authentication. Access control is managed at the network level:
 - Internal cluster access via Kubernetes Service
-- External access via Ingress with rate limiting (10 requests/minute)
+- External access via Ingress with rate limiting
 
 ## Rate Limiting
 
-The Ingress applies rate limiting:
+The Ingress applies rate limiting to external requests:
 - **Limit**: 10 requests per minute per client IP
 - **Window**: 1 minute sliding window
 
@@ -139,6 +201,15 @@ async def retrieve_context(query: str, k: int = 5) -> list:
         )
         response.raise_for_status()
         return response.json()["chunks"]
+
+async def generate_embedding(text: str) -> list:
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "http://embedding-svc.archon-knowledge-base.svc.cluster.local:8000/v1/embeddings",
+            json={"input": text}
+        )
+        response.raise_for_status()
+        return response.json()["data"][0]["embedding"]
 ```
 
 ### curl
@@ -149,29 +220,18 @@ curl -X POST http://localhost:8080/v1/retrieve \
   -H "Content-Type: application/json" \
   -d '{"query": "How do I deploy?", "k": 3}'
 
-# Health check
+# Generate embedding
+curl -X POST http://localhost:8000/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{"input": "Sample text to embed"}'
+
+# Health checks
 curl http://localhost:8080/health
-
-# Readiness check
-curl http://localhost:8080/ready
-```
-
-### Agent Integration
-
-The Agent calls the Knowledge Base during inference to augment prompts with relevant context:
-
-```python
-# Simplified Agent RAG flow
-context_chunks = await kb_client.retrieve(user_query, k=5)
-augmented_prompt = f"""Context:
-{format_chunks(context_chunks)}
-
-Question: {user_query}
-"""
-response = await llm.generate(augmented_prompt)
+curl http://localhost:8000/health
 ```
 
 **Source**
-- `src/query/main.py` - API implementation
+- `src/query/main.py` - Query API implementation
 - `src/query/retriever.py` - Retrieval logic
+- `src/embedding/main.py` - Embedding API implementation
 - `manifests/ingress.yaml` - Ingress configuration with CORS and rate limiting

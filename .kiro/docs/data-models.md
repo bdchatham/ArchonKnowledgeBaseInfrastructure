@@ -112,7 +112,7 @@ Configuration stored in Kubernetes ConfigMap `knowledge-base-config`:
 
 | Key | Type | Example |
 |-----|------|---------|
-| `embedding_service_url` | string | `http://vllm.archon-system.svc.cluster.local:8000` |
+| `embedding_service_url` | string | `http://embedding-svc:8000` |
 | `embedding_model` | string | `BAAI/bge-base-en-v1.5` |
 | `vector_db_url` | string | `http://qdrant:6333` |
 | `collection_name` | string | `archon-docs` |
@@ -129,7 +129,7 @@ The `repositories` field contains a JSON array of repository configurations:
 [
   {
     "url": "https://github.com/bdchatham/ArchonAgent",
-    "branch": "main",
+    "branch": "mainline",
     "paths": [".kiro/docs"]
   }
 ]
