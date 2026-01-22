@@ -39,11 +39,31 @@ spec:
                 configMapKeyRef:
                   name: knowledge-base-config
                   key: collection_name
-            - name: TRACKER_DB_URL
+            - name: POSTGRES_HOST
               valueFrom:
                 configMapKeyRef:
                   name: knowledge-base-config
-                  key: tracker_db_url
+                  key: postgres_host
+            - name: POSTGRES_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: knowledge-base-config
+                  key: postgres_port
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: knowledge-base-config
+                  key: postgres_db
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: knowledge-base-secrets
+                  key: postgres_user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: knowledge-base-secrets
+                  key: postgres_password
             - name: CHUNK_SIZE
               valueFrom:
                 configMapKeyRef:

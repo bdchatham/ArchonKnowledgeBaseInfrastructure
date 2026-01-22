@@ -37,10 +37,31 @@ class StorageConfiguration(BaseSettings):
         default="archon-docs",
         description="Name of the Qdrant collection for document embeddings"
     )
-    tracker_db_url: str = Field(
-        default="postgresql://archon:password@postgres:5432/archon",
-        description="PostgreSQL connection URL for state tracking"
+    postgres_host: str = Field(
+        default="postgres",
+        description="PostgreSQL host"
     )
+    postgres_port: str = Field(
+        default="5432",
+        description="PostgreSQL port"
+    )
+    postgres_db: str = Field(
+        default="archon",
+        description="PostgreSQL database name"
+    )
+    postgres_user: str = Field(
+        default="archon",
+        description="PostgreSQL user"
+    )
+    postgres_password: str = Field(
+        default="password",
+        description="PostgreSQL password"
+    )
+    
+    @property
+    def tracker_db_url(self) -> str:
+        """Build PostgreSQL connection URL from components."""
+        return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 
 
 class RetrievalConfiguration(BaseSettings):
