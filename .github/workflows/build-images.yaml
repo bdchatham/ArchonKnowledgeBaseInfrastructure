@@ -1,0 +1,47 @@
+name: Build and Push Images
+
+on:
+  push:
+    branches: [mainline]
+    paths:
+      - 'src/**'
+      - 'requirements*.txt'
+      - 'Dockerfile'
+      - '.github/workflows/build-images.yaml'
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        include:
+          - target: query
+            image: archon-kb-query
+          - target: monitor
+            image: archon-kb-monitor
+          - target: embedding
+            image: archon-knowledge-base
+            tag_suffix: embedding-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: ${{ matrix.target }}
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}:${{ matrix.tag_suffix || 'latest' }}
