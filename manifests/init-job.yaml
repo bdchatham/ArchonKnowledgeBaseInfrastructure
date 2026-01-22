@@ -63,7 +63,7 @@ spec:
             -H "Content-Type: application/json" \
             -d '{
               "vectors": {
-                "size": 384,
+                "size": 768,
                 "distance": "Cosine"
               }
             }'
