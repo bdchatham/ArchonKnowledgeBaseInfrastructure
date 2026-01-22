@@ -10,7 +10,7 @@ data:
   # Storage configuration
   vector_db_url: "http://qdrant:6333"
   collection_name: "archon-docs"
-  tracker_db_url: "postgresql://archon:password@postgres:5432/archon"
+  tracker_db_url: "postgresql://archon:archon-kb-pass-2026@postgres:5432/archon"
   
   # Retrieval settings
   retrieval_k: "5"
