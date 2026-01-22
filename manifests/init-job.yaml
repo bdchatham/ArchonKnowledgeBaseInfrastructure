@@ -54,7 +54,7 @@ spec:
         - -c
         - |
           echo "Waiting for Qdrant to be ready..."
-          until curl -f http://qdrant:6333/health; do
+          until curl -f http://qdrant:6333/healthz; do
             echo "Qdrant is not ready yet..."
             sleep 2
           done
