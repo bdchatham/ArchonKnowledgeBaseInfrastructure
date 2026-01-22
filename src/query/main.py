@@ -12,9 +12,10 @@ from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
 
 from ..common.config import Settings
-from ..common.embedding_client import EmbeddingClient, EmbeddingServiceError
+from aphex_clients import EmbeddingClient
 from ..common.vector_store import VectorStore, VectorStoreError
 from .retriever import Retriever
+import httpx
 
 logging.basicConfig(
     level=logging.INFO,
@@ -129,7 +130,7 @@ async def retrieve(request: RetrieveRequest) -> RetrieveResponse:
             query=request.query,
         )
         
-    except EmbeddingServiceError as e:
+    except (httpx.ConnectError, httpx.TimeoutException) as e:
         logger.error(f"Embedding service error: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

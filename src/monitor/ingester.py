@@ -7,7 +7,7 @@ generating embeddings, and storing them in the vector store.
 import logging
 from typing import List
 
-from ..common.embedding_client import EmbeddingClient
+from aphex_clients import EmbeddingClient
 from ..common.vector_store import VectorStore
 from .chunker import DocumentChunker
 

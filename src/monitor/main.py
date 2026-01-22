@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import List
 
 from ..common.config import Settings
-from ..common.embedding_client import EmbeddingClient
+from aphex_clients import EmbeddingClient
 from ..common.vector_store import VectorStore
 from ..common.state_tracker import StateTracker, DocumentState
 from .github_client import GitHubClient, GitHubFile
