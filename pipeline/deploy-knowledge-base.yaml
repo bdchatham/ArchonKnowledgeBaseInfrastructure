@@ -73,6 +73,6 @@ spec:
         - name: self-heal
           value: "true"
         - name: create-namespace
-          value: "true"
+          value: "false"
         - name: kubectl-image
           value: "bitnami/kubectl:latest"

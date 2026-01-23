@@ -4,8 +4,6 @@ kind: Kustomization
 namespace: archon-knowledge-base
 
 resources:
-  # Namespace first
-  - namespace.yaml
   # Configuration
   - configmap.yaml
   - secrets.yaml
