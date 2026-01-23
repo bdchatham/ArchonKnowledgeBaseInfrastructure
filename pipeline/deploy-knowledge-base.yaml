@@ -37,6 +37,10 @@ spec:
       type: string
       description: Target namespace for deployment
       default: archon-knowledge-base
+    - name: app-project
+      type: string
+      description: ArgoCD AppProject for isolation
+      default: archon-knowledge-base
 
   tasks:
     - name: deploy-to-argocd
@@ -52,6 +56,8 @@ spec:
       params:
         - name: app-name
           value: $(params.app-name)
+        - name: app-project
+          value: $(params.app-project)
         - name: repo-url
           value: $(params.git-url)
         - name: repo-revision
