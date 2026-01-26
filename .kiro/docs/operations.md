@@ -213,7 +213,7 @@ kubectl apply -f manifests/init-job.yaml
 kubectl exec -it qdrant-0 -n archon-knowledge-base -- \
   curl -X PUT http://localhost:6333/collections/archon-docs \
   -H "Content-Type: application/json" \
-  -d '{"vectors": {"size": 384, "distance": "Cosine"}}'
+  -d '{"vectors": {"size": 768, "distance": "Cosine"}}'
 ```
 
 ### PostgreSQL Schema Missing
@@ -264,6 +264,21 @@ Apply and restart Monitor:
 ```bash
 kubectl apply -f manifests/configmap.yaml
 kubectl delete job -l app=monitor -n archon-knowledge-base
+```
+
+### Manually Triggering Document Ingestion
+
+To immediately ingest documents without waiting for the CronJob schedule:
+
+```bash
+# Create a one-time job from the CronJob
+kubectl create job monitor-manual --from=cronjob/monitor -n archon-knowledge-base
+
+# Watch the job progress
+kubectl logs -f job/monitor-manual -n archon-knowledge-base
+
+# Clean up after completion
+kubectl delete job monitor-manual -n archon-knowledge-base
 ```
 
 **Source**

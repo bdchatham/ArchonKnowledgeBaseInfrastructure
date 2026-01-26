@@ -29,9 +29,11 @@ A FastAPI application that provides the semantic search API. Runs as a Kubernete
 
 Responsibilities:
 - Accept natural language queries via REST API
-- Generate query embeddings via the internal Embedding Service
-- Search Qdrant for similar document chunks
+- Generate query embeddings via the internal Embedding Service using `EmbeddingClient` from AphexServiceClients
+- Search Qdrant for similar document chunks using `VectorStore` wrapper
 - Return ranked results with source metadata
+
+The service uses `AphexServiceClients` for resilient HTTP communication with automatic retry, exponential backoff, and jitter.
 
 The service exposes health (`/health`) and readiness (`/ready`) endpoints. Readiness checks verify connectivity to both the embedding service and Qdrant.
 
@@ -42,9 +44,11 @@ A batch job that runs as a Kubernetes CronJob every 15 minutes. Processes config
 Responsibilities:
 - Fetch file listings from GitHub repositories
 - Compare SHA hashes against tracked state in PostgreSQL
-- Chunk new/modified documents and generate embeddings
+- Chunk new/modified documents and generate embeddings via `EmbeddingClient` from AphexServiceClients
 - Store embeddings in Qdrant with source metadata
 - Remove embeddings for deleted documents
+
+The service uses `AphexServiceClients` for resilient communication with the embedding service.
 
 
 ### Qdrant Vector Store
@@ -53,7 +57,7 @@ Stores document embeddings for similarity search. Deployed as a StatefulSet with
 
 Configuration:
 - Collection: `archon-docs`
-- Vector size: 384 (matches BGE-base embedding model)
+- Vector size: 768 (matches BAAI/bge-base-en-v1.5 embedding model)
 - Distance metric: Cosine similarity
 - Storage: 10Gi PersistentVolumeClaim
 
@@ -73,7 +77,8 @@ Stores:
 | Embedding Service | FastAPI + sentence-transformers | 0.109+ |
 | Query Service | FastAPI + Uvicorn | 0.109+ |
 | HTTP Client | httpx | 0.26+ |
-| Vector Database | Qdrant | 1.7.0 |
+| Service Clients | AphexServiceClients | latest |
+| Vector Database | Qdrant | 1.16.3 |
 | State Database | PostgreSQL | 15-alpine |
 | Embedding Model | BAAI/bge-base-en-v1.5 | - |
 | Container Runtime | Python | 3.11-slim |
