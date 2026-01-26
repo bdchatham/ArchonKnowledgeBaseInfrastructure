@@ -88,9 +88,9 @@ class VectorStore:
         client = self._get_client()
         
         try:
-            results = client.search(
+            results = client.query_points(
                 collection_name=self.collection,
-                query_vector=embedding,
+                query=embedding,
                 limit=k,
                 score_threshold=score_threshold,
             )
@@ -102,7 +102,7 @@ class VectorStore:
                     chunk_index=hit.payload.get("chunk_index", 0),
                     score=hit.score,
                 )
-                for hit in results
+                for hit in results.points
             ]
             
         except UnexpectedResponse as e:
