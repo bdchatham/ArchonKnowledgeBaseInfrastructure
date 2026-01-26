@@ -18,7 +18,7 @@ Stores document chunk embeddings for similarity search.
 | Property | Value |
 |----------|-------|
 | Collection Name | `archon-docs` |
-| Vector Size | 384 |
+| Vector Size | 768 |
 | Distance Metric | Cosine |
 
 **Point Structure**:
@@ -53,7 +53,7 @@ Created by init job:
 ```bash
 curl -X PUT http://qdrant:6333/collections/archon-docs \
   -H "Content-Type: application/json" \
-  -d '{"vectors": {"size": 384, "distance": "Cosine"}}'
+  -d '{"vectors": {"size": 768, "distance": "Cosine"}}'
 ```
 
 ## PostgreSQL Schema

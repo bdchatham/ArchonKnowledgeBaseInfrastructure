@@ -136,7 +136,7 @@ Generate embeddings for input text(s). OpenAI-compatible format.
 | Field | Type | Description |
 |-------|------|-------------|
 | `data` | array | Embedding results |
-| `data[].embedding` | array | 384-dimensional vector |
+| `data[].embedding` | array | 768-dimensional vector |
 | `data[].index` | integer | Index of input text |
 | `model` | string | Model used |
 | `usage` | object | Token usage (approximate) |

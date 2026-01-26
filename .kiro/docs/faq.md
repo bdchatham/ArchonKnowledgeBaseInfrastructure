@@ -184,7 +184,7 @@ Archon reads all Markdown files under `.kiro/docs/` from this public GitHub repo
 
 ### What embedding model is used?
 
-The system uses `BAAI/bge-base-en-v1.5`, which produces 384-dimensional vectors. This model is served by the internal Embedding Service using sentence-transformers.
+The system uses `BAAI/bge-base-en-v1.5`, which produces 768-dimensional vectors. This model is served by the internal Embedding Service using sentence-transformers.
 
 ### How are documents chunked?
 
