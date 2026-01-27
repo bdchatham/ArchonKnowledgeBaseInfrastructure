@@ -2,15 +2,72 @@
 
 ## System Design
 
-The Archon Knowledge Base is a fully self-contained RAG infrastructure system. It consists of three primary services (Embedding, Query, and Monitor) backed by two storage systems (Qdrant and PostgreSQL). The system is designed for Kubernetes deployment with no external dependencies.
+The Archon Knowledge Base uses a **declarative CRD-based architecture** with two deployment layers:
+
+1. **Infrastructure Layer** - Core services (Qdrant, PostgreSQL, Query, Embedding, Monitor)
+2. **Configuration Layer** - KnowledgeBase CRD specifies repositories and MCP settings
+
+### KnowledgeBase CRD Model
+
+```yaml
+apiVersion: aphex.io/v1alpha1
+kind: KnowledgeBase
+metadata:
+  name: platform-docs
+  namespace: archon-knowledge-base
+spec:
+  displayName: "Aphex Platform Documentation"
+  repositories:
+    - url: https://github.com/bdchatham/AphexPlatformInfrastructure
+      branch: mainline
+      paths: [".kiro/docs"]
+  mcp:
+    image: ghcr.io/bdchatham/archon-mcp-server:latest
+    port: 3000
+    replicas: 1
+```
+
+The platform controller watches this CRD and provisions:
+- MCP server deployment (if `spec.mcp` is set)
+- MCP server service
+- Configuration for Monitor service to track repositories
 
 The architecture follows a clear separation of concerns:
 - **Embedding Service**: Generates vector embeddings using sentence-transformers
 - **Query Service**: Handles retrieval requests synchronously
 - **Monitor Service**: Handles document ingestion asynchronously via CronJob
+- **MCP Server**: Exposes knowledge base tools for AI assistants (optional)
 - **Storage Layer**: Provides persistence for vectors and state
 
 ## Components
+
+### KnowledgeBase CRD
+
+Declarative configuration for the knowledge base:
+
+**Required fields:**
+- `spec.displayName` - Human-readable name
+- `spec.repositories[]` - List of repositories to track
+  - `url` - Repository URL (required)
+  - `branch` - Git branch (optional, default: main)
+  - `paths[]` - Documentation paths (optional, default: [".kiro/docs"])
+
+**Optional fields:**
+- `spec.description` - Description of the knowledge base
+- `spec.mcp` - MCP server configuration
+  - `image` - Container image (required if mcp set)
+  - `port` - Server port (required if mcp set)
+  - `queryServiceURL` - Query service URL (optional, auto-computed)
+  - `replicas` - Number of replicas (optional, default: 1)
+
+**Status tracking:**
+- `status.phase` - Current state (Pending, Ready, Failed)
+- `status.mcp.deployed` - MCP server deployment status
+- `status.mcp.serviceURL` - Internal service URL
+
+**Source**
+- `manifests/knowledgebase.yaml` - KnowledgeBase CRD manifest
+- Platform controller API types (in AphexPlatformInfrastructure)
 
 ### Embedding Service
 
@@ -39,9 +96,10 @@ The service exposes health (`/health`) and readiness (`/ready`) endpoints. Readi
 
 ### Monitor Service
 
-A batch job that runs as a Kubernetes CronJob every 15 minutes. Processes configured GitHub repositories to detect and ingest documentation changes.
+A batch job that runs as a Kubernetes CronJob every 15 minutes. Processes repositories configured in the KnowledgeBase CRD to detect and ingest documentation changes.
 
 Responsibilities:
+- Read repository configuration from KnowledgeBase CRD
 - Fetch file listings from GitHub repositories
 - Compare SHA hashes against tracked state in PostgreSQL
 - Chunk new/modified documents and generate embeddings via `EmbeddingClient` from AphexServiceClients
@@ -52,7 +110,7 @@ The service uses `AphexServiceClients` for resilient communication with the embe
 
 ### MCP Server (Optional)
 
-A Model Context Protocol server that exposes knowledge base tools for AI assistants. Automatically provisioned when `spec.mcpServer` is set (non-nil) in the KnowledgeBase CRD.
+A Model Context Protocol server that exposes knowledge base tools for AI assistants. Automatically provisioned by the platform controller when `spec.mcp` is set in the KnowledgeBase CRD.
 
 Responsibilities:
 - Expose MCP protocol endpoints (`/mcp/tools/list`, `/mcp/tools/call`)

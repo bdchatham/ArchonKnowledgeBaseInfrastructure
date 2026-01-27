@@ -48,6 +48,28 @@ Repositories using ArchonKiroTemplate include `.kiro/steering/archon-rag.md`, wh
 
 ## Deployment Model
 
+ArchonKnowledgeBaseInfrastructure uses a **two-layer deployment approach**:
+
+1. **Infrastructure Layer** - Base services (Qdrant, PostgreSQL, Query, Embedding, Monitor)
+2. **Configuration Layer** - KnowledgeBase CRD specifies repositories to track and MCP settings
+
+**Infrastructure deployment:**
+- Deployed via `deploy-knowledge-base` pipeline
+- ArgoCD syncs manifests from Git
+- Provisions core services in `archon-knowledge-base` namespace
+
+**Configuration deployment:**
+- KnowledgeBase CRD (`manifests/knowledgebase.yaml`) declares repositories and MCP config
+- Platform controller watches KnowledgeBase CRD
+- Controller provisions MCP server if `spec.mcp` is set
+- Monitor service reads repository configuration from CRD
+
+**GitOps workflow:**
+- All configuration lives in Git (`manifests/knowledgebase.yaml`)
+- ArgoCD syncs CRD to cluster
+- Platform controller reconciles to desired state
+- Changes to repositories or MCP config trigger automatic updates
+
 The Knowledge Base is fully self-contained and can be deployed independently or integrated with Agents:
 
 1. **Deploy Knowledge Base** - All components deploy together

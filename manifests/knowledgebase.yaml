@@ -1,0 +1,33 @@
+apiVersion: aphex.io/v1alpha1
+kind: KnowledgeBase
+metadata:
+  name: platform-docs
+  namespace: archon-knowledge-base
+spec:
+  displayName: "Aphex Platform Documentation"
+  description: "RAG knowledge base for Aphex platform repositories"
+  repositories:
+    - url: https://github.com/bdchatham/AphexPlatformInfrastructure
+      branch: mainline
+      paths:
+        - .kiro/docs
+    - url: https://github.com/bdchatham/ArchonKnowledgeBaseInfrastructure
+      branch: mainline
+      paths:
+        - .kiro/docs
+    - url: https://github.com/bdchatham/ArchonAgent
+      branch: mainline
+      paths:
+        - .kiro/docs
+    - url: https://github.com/bdchatham/AphexCLI
+      branch: mainline
+      paths:
+        - .kiro/docs
+    - url: https://github.com/bdchatham/AphexPipelineResources
+      branch: mainline
+      paths:
+        - .kiro/docs
+  mcp:
+    image: ghcr.io/bdchatham/archon-mcp-server:latest
+    port: 3000
+    replicas: 1

@@ -2,7 +2,6 @@ apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
   name: deploy-knowledge-base
-  namespace: pipeline-system
   labels:
     app.kubernetes.io/part-of: archon-knowledge-base
 spec:
