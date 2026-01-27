@@ -48,21 +48,38 @@ Repositories using ArchonKiroTemplate include `.kiro/steering/archon-rag.md`, wh
 
 ## Deployment Model
 
-The Knowledge Base is fully self-contained:
+The Knowledge Base is fully self-contained and can be deployed independently or integrated with Agents:
 
 1. **Deploy Knowledge Base** - All components deploy together
 2. **RAG is enabled** - Query Service is ready to serve retrieval requests
 3. **Optional: Enable MCP Server** - Add `spec.mcpServer: {}` to KnowledgeBase CRD
-4. **Optional: Deploy Agent** - For LLM inference with RAG augmentation
+4. **Optional: Deploy Agent** - Reference Knowledge Base in Agent CRD for RAG-augmented inference
 
 ## Relationship to Agent
 
-The Knowledge Base operates independently from the Agent (vLLM model server). This separation allows:
+The Knowledge Base operates independently from Agents. The Agent CRD provisions model servers (vLLM) and optionally references a Knowledge Base for RAG capabilities.
 
-- Knowledge Base to be deployed without Agent running
-- Multiple Agents to share one Knowledge Base
-- Knowledge bases to be updated without Agent downtime
-- Different teams to manage their own knowledge bases
+**Three Agent deployment patterns:**
+
+1. **Model only** - Agent provisions model server without Knowledge Base reference
+   - Direct model inference via `{agent-name}-model` service
+   - No RAG capabilities
+
+2. **Model + Knowledge Base** - Agent references existing Knowledge Base
+   - Model server at `{agent-name}-model` service
+   - User manually calls both services for RAG workflow
+   - Flexible but requires orchestration
+
+3. **Model + Knowledge Base + Orchestration** - Agent provisions orchestrator
+   - Unified `/v1/chat` endpoint at `{agent-name}` service
+   - Orchestrator automatically combines model inference + KB retrieval
+   - Simplest RAG experience
+
+**Benefits of separation:**
+- Knowledge Base deployed without Agent running
+- Multiple Agents share one Knowledge Base
+- Knowledge bases updated without Agent downtime
+- Different teams manage their own knowledge bases
 - Flexible scaling of storage vs. compute
 - MCP server provides tool-based access for AI assistants
 
@@ -70,11 +87,12 @@ The Knowledge Base operates independently from the Agent (vLLM model server). Th
 
 | Term | Definition |
 |------|------------|
-| Agent | The vLLM model server providing LLM inference capabilities |
+| Agent | CRD that provisions model server (vLLM) and optionally orchestrator for RAG |
 | Knowledge Base | This system - document storage and retrieval infrastructure |
 | Embedding Service | FastAPI application generating vector embeddings |
 | Query Service | FastAPI application handling retrieval requests |
 | Monitor Service | CronJob that syncs documents from GitHub |
+| Orchestrator | Optional component that combines model inference + KB retrieval into unified endpoint |
 | Chunk | A segment of a document stored with its embedding |
 | repo_file_path | Unique document identifier combining repo URL and file path |
 

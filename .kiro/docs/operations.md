@@ -335,6 +335,169 @@ kubectl logs -f job/monitor-manual -n archon-knowledge-base
 kubectl delete job monitor-manual -n archon-knowledge-base
 ```
 
+## Agent Deployment
+
+The Agent CRD provisions model servers (vLLM) and optionally references Knowledge Bases for RAG capabilities.
+
+### Deployment Patterns
+
+**1. Model Only (No RAG)**
+
+```yaml
+apiVersion: aphex.io/v1alpha1
+kind: Agent
+metadata:
+  name: llama-70b
+  namespace: agents
+spec:
+  displayName: "Llama 3.1 70B"
+  model:
+    provider: vllm
+    name: meta-llama/Llama-3.1-70B-Instruct
+    gpuCount: 4
+```
+
+**What gets provisioned:**
+- Deployment: `llama-70b-model` (vLLM server)
+- Service: `llama-70b-model:8000`
+
+**Access:**
+```bash
+curl http://llama-70b-model.agents:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "meta-llama/Llama-3.1-70B-Instruct", "messages": [{"role": "user", "content": "Hello"}]}'
+```
+
+**2. Model + Knowledge Base (Manual RAG)**
+
+```yaml
+apiVersion: aphex.io/v1alpha1
+kind: Agent
+metadata:
+  name: llama-70b-rag
+  namespace: agents
+spec:
+  displayName: "Llama 3.1 70B with RAG"
+  model:
+    provider: vllm
+    name: meta-llama/Llama-3.1-70B-Instruct
+    gpuCount: 4
+  knowledgeBase:
+    name: platform-docs
+    namespace: archon-knowledge-base
+```
+
+**What gets provisioned:**
+- Deployment: `llama-70b-rag-model` (vLLM server)
+- Service: `llama-70b-rag-model:8000`
+
+**Access (manual orchestration):**
+```bash
+# 1. Get context from Knowledge Base
+CONTEXT=$(curl http://query.archon-knowledge-base:8080/v1/retrieve \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How do I deploy an Agent?", "k": 3}')
+
+# 2. Call model with context
+curl http://llama-70b-rag-model.agents:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d "{\"model\": \"meta-llama/Llama-3.1-70B-Instruct\", \"messages\": [{\"role\": \"system\", \"content\": \"$CONTEXT\"}, {\"role\": \"user\", \"content\": \"How do I deploy an Agent?\"}]}"
+```
+
+**3. Full (Model + KB + Orchestration)**
+
+```yaml
+apiVersion: aphex.io/v1alpha1
+kind: Agent
+metadata:
+  name: llama-70b-unified
+  namespace: agents
+spec:
+  displayName: "Llama 3.1 70B Unified"
+  model:
+    provider: vllm
+    name: meta-llama/Llama-3.1-70B-Instruct
+    gpuCount: 4
+  knowledgeBase:
+    name: platform-docs
+    namespace: archon-knowledge-base
+  orchestration: {}  # Enables orchestrator with defaults
+```
+
+**What gets provisioned:**
+- Deployment: `llama-70b-unified-model` (vLLM server)
+- Service: `llama-70b-unified-model:8000`
+- Deployment: `llama-70b-unified` (orchestrator)
+- Service: `llama-70b-unified:8000` (unified endpoint)
+
+**Access (automatic RAG):**
+```bash
+# Single endpoint handles RAG automatically
+curl http://llama-70b-unified.agents:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model": "meta-llama/Llama-3.1-70B-Instruct", "messages": [{"role": "user", "content": "How do I deploy an Agent?"}]}'
+```
+
+### Checking Agent Status
+
+```bash
+# Get Agent status
+kubectl get agent llama-70b-unified -n agents -o yaml
+
+# Check model server status
+kubectl get agent llama-70b-unified -n agents -o jsonpath='{.status.modelServer}'
+
+# Check orchestrator status (if provisioned)
+kubectl get agent llama-70b-unified -n agents -o jsonpath='{.status.orchestrator}'
+```
+
+**Expected status:**
+```yaml
+status:
+  phase: Ready
+  message: "Agent is ready"
+  modelServer:
+    deployed: true
+    serviceName: llama-70b-unified-model
+    serviceURL: http://llama-70b-unified-model.agents:8000
+    readyReplicas: 1
+  orchestrator:
+    deployed: true
+    serviceName: llama-70b-unified
+    serviceURL: http://llama-70b-unified.agents:8000
+    readyReplicas: 1
+```
+
+### Troubleshooting Agent Deployment
+
+**Model server not ready:**
+```bash
+# Check model server pods
+kubectl get pods -l agent=llama-70b-unified,app=model-server -n agents
+
+# Check logs
+kubectl logs -l agent=llama-70b-unified,app=model-server -n agents
+
+# Common issues:
+# - Insufficient GPU resources
+# - Model download timeout
+# - OOM (increase memory limits)
+```
+
+**Orchestrator not ready:**
+```bash
+# Check orchestrator pods
+kubectl get pods -l agent=llama-70b-unified,app=orchestrator -n agents
+
+# Check logs
+kubectl logs -l agent=llama-70b-unified,app=orchestrator -n agents
+
+# Common issues:
+# - Model server URL unreachable
+# - Query service URL unreachable
+# - KnowledgeBase not found
+```
+
 **Source**
 - `manifests/configmap.yaml` - Configuration
 - `manifests/secrets.yaml` - Secrets template
@@ -343,3 +506,5 @@ kubectl delete job monitor-manual -n archon-knowledge-base
 - `manifests/monitor-cronjob.yaml` - Monitor CronJob
 - `manifests/init-job.yaml` - Schema initialization
 - `pipeline/README.md` - Pipeline documentation
+- AphexPlatformInfrastructure: `platform/base/platform-controller/controller/controllers/agent_controller.go` - Agent controller
+- AphexPlatformInfrastructure: `platform/base/platform-controller/controller/api/v1alpha1/agent_types.go` - Agent CRD

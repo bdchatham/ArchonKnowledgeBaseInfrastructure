@@ -179,10 +179,30 @@ The Knowledge Base is fully self-contained. No external embedding service is req
 
 ### Downstream Consumers
 
-| Consumer | Integration Point |
-|----------|-------------------|
-| Agent (vLLM) | Calls `/v1/retrieve` for RAG context |
-| External Clients | REST API via Ingress |
+| Consumer | Integration Point | Pattern |
+|----------|-------------------|---------|
+| Agent (Model Only) | No integration | Direct model inference |
+| Agent (Model + KB) | Calls `/v1/retrieve` for RAG context | Manual orchestration |
+| Agent (Full) | Orchestrator calls `/v1/retrieve` | Automatic RAG |
+| Kiro CLI | MCP Server tools | Tool-based retrieval |
+| External Clients | REST API via Ingress | Direct API access |
+
+**Agent Integration Patterns:**
+
+1. **Model Only**: Agent provisions model server without KB reference
+   - No Knowledge Base integration
+   - Direct inference via `{agent-name}-model` service
+
+2. **Model + KB**: Agent references Knowledge Base
+   - Model server: `{agent-name}-model`
+   - User manually calls Query Service for context
+   - Flexible but requires orchestration
+
+3. **Full (Model + KB + Orchestration)**: Agent provisions orchestrator
+   - Orchestrator: `{agent-name}` service
+   - Unified `/v1/chat` endpoint
+   - Orchestrator automatically calls Query Service for RAG context
+   - Simplest RAG experience
 
 **Source**
 - `src/embedding/main.py` - Embedding service implementation

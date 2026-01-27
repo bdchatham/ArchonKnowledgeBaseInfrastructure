@@ -10,19 +10,39 @@ ArchonKnowledgeBaseInfrastructure provides a fully self-contained RAG (Retrieval
 
 The Knowledge Base is one component of the Archon system:
 - **Knowledge Base** (this repo): Document storage, embedding generation, retrieval, and optional MCP server
-- **Agent** (ArchonAgent): LLM model server providing inference
-- **Platform** (AphexPlatformInfrastructure): GitOps infrastructure with ArgoCD and KnowledgeBase CRD controller
+- **Agent CRD** (AphexPlatformInfrastructure): Provisions model servers (vLLM) and orchestrators
+- **Platform** (AphexPlatformInfrastructure): GitOps infrastructure with ArgoCD and CRD controllers
 
-The Agent can call the Knowledge Base during inference to retrieve relevant context for RAG-augmented responses. AI assistants like Kiro can use the MCP server to search documentation when enabled.
+Agents can reference Knowledge Bases for RAG capabilities. AI assistants like Kiro can use the MCP server to search documentation when enabled.
 
 ### Why is the Knowledge Base separate from the Agent?
 
 Separation provides flexibility:
-- Knowledge Base can be deployed without Agent running
-- Multiple Agents can share one Knowledge Base
-- Knowledge bases can be updated without Agent downtime
-- Different teams can manage their own knowledge bases
-- Storage and compute can scale independently
+- Knowledge Base deployed without Agent running
+- Multiple Agents share one Knowledge Base
+- Knowledge bases updated without Agent downtime
+- Different teams manage their own knowledge bases
+- Storage and compute scale independently
+
+### What are the Agent deployment patterns?
+
+The Agent CRD supports three patterns:
+
+1. **Model only**: No Knowledge Base reference
+   - Direct model inference via `{agent-name}-model` service
+   - No RAG capabilities
+
+2. **Model + KB**: Agent references Knowledge Base
+   - Model server: `{agent-name}-model`
+   - User manually calls Query Service for context
+   - Flexible but requires orchestration
+
+3. **Full (Model + KB + Orchestration)**: Agent provisions orchestrator
+   - Unified endpoint: `{agent-name}` service
+   - Orchestrator automatically handles RAG
+   - Simplest RAG experience
+
+See operations.md for deployment examples.
 
 ## Deployment Questions
 
