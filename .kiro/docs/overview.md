@@ -52,7 +52,7 @@ The Knowledge Base is fully self-contained:
 
 1. **Deploy Knowledge Base** - All components deploy together
 2. **RAG is enabled** - Query Service is ready to serve retrieval requests
-3. **Optional: Enable MCP Server** - Set `spec.mcpServer.enabled: true` in KnowledgeBase CRD
+3. **Optional: Enable MCP Server** - Add `spec.mcpServer: {}` to KnowledgeBase CRD
 4. **Optional: Deploy Agent** - For LLM inference with RAG augmentation
 
 ## Relationship to Agent

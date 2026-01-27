@@ -184,7 +184,7 @@ Archon reads all Markdown files under `.kiro/docs/` from this public GitHub repo
 
 ### What is the MCP server and how do I enable it?
 
-The MCP (Model Context Protocol) server exposes knowledge base tools for AI assistants like Kiro CLI. It's automatically provisioned by the platform controller when enabled in the KnowledgeBase CRD:
+The MCP (Model Context Protocol) server exposes knowledge base tools for AI assistants like Kiro CLI. It's automatically provisioned by the platform controller when `mcpServer` is set in the KnowledgeBase CRD:
 
 ```yaml
 apiVersion: aphex.io/v1alpha1
@@ -192,8 +192,12 @@ kind: KnowledgeBase
 metadata:
   name: my-kb
 spec:
-  mcpServer:
-    enabled: true
+  mcpServer: {}  # Presence enables MCP server with defaults
+  # Or customize:
+  # mcpServer:
+  #   image: custom-mcp:v1.0
+  #   port: 9090
+  #   queryServiceURL: http://my-query:8080
 ```
 
 **Tools exposed:**

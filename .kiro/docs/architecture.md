@@ -52,7 +52,7 @@ The service uses `AphexServiceClients` for resilient communication with the embe
 
 ### MCP Server (Optional)
 
-A Model Context Protocol server that exposes knowledge base tools for AI assistants. Automatically provisioned when `spec.mcpServer.enabled: true` in the KnowledgeBase CRD.
+A Model Context Protocol server that exposes knowledge base tools for AI assistants. Automatically provisioned when `spec.mcpServer` is set (non-nil) in the KnowledgeBase CRD.
 
 Responsibilities:
 - Expose MCP protocol endpoints (`/mcp/tools/list`, `/mcp/tools/call`)

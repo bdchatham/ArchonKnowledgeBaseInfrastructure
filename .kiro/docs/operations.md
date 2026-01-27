@@ -93,10 +93,12 @@ spec:
   repositories:
     - url: https://github.com/bdchatham/ArchonAgent
     - url: https://github.com/bdchatham/AphexPlatformInfrastructure
-  mcpServer:
-    enabled: true
-    port: 8090      # optional, default: 8090
-    replicas: 1     # optional, default: 1
+  mcpServer: {}  # Presence enables MCP server with defaults
+  # Or customize:
+  # mcpServer:
+  #   port: 8090                                              # optional, default: 8090
+  #   image: ghcr.io/bdchatham/archon-mcp-server:latest     # optional
+  #   queryServiceURL: http://query.archon-knowledge-base:8080  # optional
 ```
 
 **What gets provisioned:**
