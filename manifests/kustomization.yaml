@@ -7,6 +7,8 @@ resources:
   # Configuration
   - configmap.yaml
   - secrets.yaml
+  # KnowledgeBase CRD
+  - knowledgebase.yaml
   # StatefulSets (databases) - must be ready before dependents
   - qdrant-statefulset.yaml
   - qdrant-service.yaml
