@@ -50,6 +50,27 @@ Responsibilities:
 
 The service uses `AphexServiceClients` for resilient communication with the embedding service.
 
+### MCP Server (Optional)
+
+A Model Context Protocol server that exposes knowledge base tools for AI assistants. Automatically provisioned when `spec.mcpServer.enabled: true` in the KnowledgeBase CRD.
+
+Responsibilities:
+- Expose MCP protocol endpoints (`/mcp/tools/list`, `/mcp/tools/call`)
+- Provide `search` tool that wraps Query Service
+- Provide `get_document` tool for full document retrieval
+- Provide `list_sources` tool for repository discovery
+
+The MCP server is provisioned by the platform controller in AphexPlatformInfrastructure:
+- **Deployment**: `mcp-server-{kb-name}` with configurable replicas
+- **Service**: `mcp-server-{kb-name}` on configurable port (default: 8090)
+- **Image**: `ghcr.io/bdchatham/archon-mcp-server:latest`
+- **Resources**: 128-256Mi memory, 50-200m CPU
+
+The server uses `AphexServiceClients.QueryClient` for resilient communication with the Query Service.
+
+**Integration with Kiro:**
+Repositories using ArchonKiroTemplate include `.kiro/steering/archon-rag.md`, which instructs Kiro to discover and use MCP tools automatically when working on platform code.
+
 
 ### Qdrant Vector Store
 
@@ -76,6 +97,7 @@ Stores:
 |-----------|------------|---------|
 | Embedding Service | FastAPI + sentence-transformers | 0.109+ |
 | Query Service | FastAPI + Uvicorn | 0.109+ |
+| MCP Server | FastAPI + AphexServiceClients | latest |
 | HTTP Client | httpx | 0.26+ |
 | Service Clients | AphexServiceClients | latest |
 | Vector Database | Qdrant | 1.16.3 |
@@ -119,6 +141,23 @@ Monitor CronJob → GitHub API → Document Content
 3. Changed documents are chunked (1000 chars, 200 overlap)
 4. Chunks are embedded via internal Embedding Service
 5. Embeddings are upserted to Qdrant with metadata
+
+### MCP Tool Invocation Flow (Optional)
+
+```
+Kiro CLI → MCP Server → Query Service → Embedding Service
+                                     ↓
+                             Vector Store (Qdrant)
+                                     ↓
+                             Ranked Results → MCP Server → Kiro CLI
+```
+
+1. Kiro discovers MCP tools via `/mcp/tools/list`
+2. Kiro invokes `{kb-name}.search` tool via `/mcp/tools/call`
+3. MCP Server calls Query Service `/v1/retrieve`
+4. Query Service generates embedding and searches Qdrant
+5. Results are formatted as MCP response with provenance
+6. Kiro uses results to ground decisions in actual documentation
 
 ## Dependencies
 

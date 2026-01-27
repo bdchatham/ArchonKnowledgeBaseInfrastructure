@@ -9,11 +9,11 @@ ArchonKnowledgeBaseInfrastructure provides a fully self-contained RAG (Retrieval
 ### How does this fit into the larger system?
 
 The Knowledge Base is one component of the Archon system:
-- **Knowledge Base** (this repo): Document storage, embedding generation, and retrieval
+- **Knowledge Base** (this repo): Document storage, embedding generation, retrieval, and optional MCP server
 - **Agent** (ArchonAgent): LLM model server providing inference
-- **Platform** (AphexPlatformInfrastructure): GitOps infrastructure with ArgoCD
+- **Platform** (AphexPlatformInfrastructure): GitOps infrastructure with ArgoCD and KnowledgeBase CRD controller
 
-The Agent can call the Knowledge Base during inference to retrieve relevant context for RAG-augmented responses.
+The Agent can call the Knowledge Base during inference to retrieve relevant context for RAG-augmented responses. AI assistants like Kiro can use the MCP server to search documentation when enabled.
 
 ### Why is the Knowledge Base separate from the Agent?
 
@@ -181,6 +181,28 @@ Archon reads all Markdown files under `.kiro/docs/` from this public GitHub repo
 2. Ensure changes are grounded in code with "Source" references
 3. Commit and push to the monitored branch (mainline)
 4. Monitor will detect changes within 15 minutes
+
+### What is the MCP server and how do I enable it?
+
+The MCP (Model Context Protocol) server exposes knowledge base tools for AI assistants like Kiro CLI. It's automatically provisioned by the platform controller when enabled in the KnowledgeBase CRD:
+
+```yaml
+apiVersion: aphex.io/v1alpha1
+kind: KnowledgeBase
+metadata:
+  name: my-kb
+spec:
+  mcpServer:
+    enabled: true
+```
+
+**Tools exposed:**
+- `{kb-name}.search` - Search documentation with ranked results
+- `{kb-name}.get_document` - Retrieve full document text
+- `{kb-name}.list_sources` - List available repositories
+
+**Integration with Kiro:**
+Repositories using ArchonKiroTemplate include `.kiro/steering/archon-rag.md`, which instructs Kiro to discover and use MCP tools automatically.
 
 ### What embedding model is used?
 

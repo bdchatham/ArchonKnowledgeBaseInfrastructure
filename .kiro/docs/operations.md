@@ -60,6 +60,7 @@ kubectl get pods -n archon-knowledge-base
 # - query-* (2 replicas)
 # - qdrant-0
 # - postgres-0
+# - mcp-server-* (if MCP enabled in KnowledgeBase CRD)
 
 # Verify Embedding service health
 kubectl port-forward svc/embedding-svc 8000:8000 -n archon-knowledge-base
@@ -69,8 +70,53 @@ curl http://localhost:8000/ready
 kubectl port-forward svc/query 8080:8080 -n archon-knowledge-base
 curl http://localhost:8080/ready
 
+# Verify MCP server health (if enabled)
+kubectl port-forward svc/mcp-server-{kb-name} 8090:8090 -n archon-knowledge-base
+curl http://localhost:8090/health
+
 # Check via Ingress
 curl -k https://archon-kb.home.local/health
+```
+
+### Enabling MCP Server
+
+The MCP server is provisioned automatically by the platform controller when enabled in the KnowledgeBase CRD:
+
+```yaml
+apiVersion: aphex.io/v1alpha1
+kind: KnowledgeBase
+metadata:
+  name: platform-docs
+  namespace: archon-knowledge-base
+spec:
+  displayName: "Platform Documentation"
+  repositories:
+    - url: https://github.com/bdchatham/ArchonAgent
+    - url: https://github.com/bdchatham/AphexPlatformInfrastructure
+  mcpServer:
+    enabled: true
+    port: 8090      # optional, default: 8090
+    replicas: 1     # optional, default: 1
+```
+
+**What gets provisioned:**
+- Deployment: `mcp-server-platform-docs`
+- Service: `mcp-server-platform-docs:8090`
+- Service URL: `http://mcp-server-platform-docs.archon-knowledge-base:8090`
+
+**Check MCP server status:**
+```bash
+kubectl get knowledgebase platform-docs -n archon-knowledge-base -o jsonpath='{.status.mcpServer}'
+```
+
+**Expected output:**
+```json
+{
+  "deployed": true,
+  "serviceName": "mcp-server-platform-docs",
+  "serviceURL": "http://mcp-server-platform-docs.archon-knowledge-base:8090",
+  "readyReplicas": 1
+}
 ```
 
 
@@ -84,11 +130,13 @@ curl -k https://archon-kb.home.local/health
 | Embedding | `/ready` | Model loaded check | `{"status": "ready", "model": "..."}` |
 | Query | `/health` | Liveness check | `{"status": "healthy"}` |
 | Query | `/ready` | Readiness check | `{"status": "ready", ...}` |
+| MCP Server | `/health` | Liveness check | `{"status": "healthy"}` |
 
 ### Key Metrics to Watch
 
 - Embedding service pod restarts and memory usage
 - Query service pod restarts
+- MCP server pod restarts (if enabled)
 - Monitor CronJob success/failure rate
 - Qdrant collection size and query latency
 - PostgreSQL connection pool usage
@@ -98,6 +146,10 @@ curl -k https://archon-kb.home.local/health
 Embedding service probes:
 - **Liveness**: `/health` every 30s, initial delay 30s
 - **Readiness**: `/ready` every 10s, initial delay 60s
+
+MCP server probes (if enabled):
+- **Liveness**: `/health` every 30s, initial delay 10s
+- **Readiness**: `/health` every 10s, initial delay 5s
 
 Query service probes:
 - **Liveness**: `/health` every 30s, initial delay 10s

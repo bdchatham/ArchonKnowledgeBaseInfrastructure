@@ -2,7 +2,7 @@
 
 ## Purpose
 
-ArchonKnowledgeBaseInfrastructure is a fully self-contained RAG (Retrieval-Augmented Generation) knowledge base system. It provides document ingestion, embedding generation, vector storage, and semantic retrieval capabilities that enable RAG workflows.
+ArchonKnowledgeBaseInfrastructure is a fully self-contained RAG (Retrieval-Augmented Generation) knowledge base system. It provides document ingestion, embedding generation, vector storage, semantic retrieval, and MCP (Model Context Protocol) server capabilities that enable RAG workflows and tool-based AI interactions.
 
 The system includes its own Embedding Service using the BAAI/bge-base-en-v1.5 model via sentence-transformers. No external dependencies are required for deployment.
 
@@ -11,6 +11,8 @@ The system includes its own Embedding Service using the BAAI/bge-base-en-v1.5 mo
 **Embedding Service**: A FastAPI application that generates vector embeddings using the BAAI/bge-base-en-v1.5 model. Provides an OpenAI-compatible `/v1/embeddings` endpoint.
 
 **Query Service**: A FastAPI application that accepts natural language queries, generates embeddings via the internal Embedding Service, performs vector similarity search in Qdrant, and returns relevant document chunks.
+
+**MCP Server** (optional): A Model Context Protocol server that exposes knowledge base tools (`search`, `get_document`, `list_sources`) for AI assistants like Kiro CLI. Automatically provisioned when enabled in the KnowledgeBase CRD.
 
 **Monitor Service**: A scheduled job that watches configured GitHub repositories for documentation changes, detects modifications via SHA comparison, and keeps the vector store synchronized with source content.
 
@@ -28,13 +30,30 @@ The Knowledge Base provides context retrieval for RAG-augmented responses:
 4. Relevant context is returned to the caller
 5. Agent uses context to augment LLM inference
 
+## MCP Integration
+
+When MCP server is enabled in the KnowledgeBase CRD, the platform controller automatically provisions:
+
+1. **MCP Server Deployment** - Runs archon-mcp-server image
+2. **MCP Server Service** - Exposes tools at `http://mcp-server-{kb-name}.{namespace}:8090`
+3. **Tool Discovery** - AI assistants can discover and invoke knowledge base tools
+
+**Tools exposed:**
+- `{kb-name}.search` - Search documentation with ranked results
+- `{kb-name}.get_document` - Retrieve full document text
+- `{kb-name}.list_sources` - List available repositories
+
+**Integration with Kiro:**
+Repositories using ArchonKiroTemplate include `.kiro/steering/archon-rag.md`, which instructs Kiro to discover and use MCP tools automatically.
+
 ## Deployment Model
 
 The Knowledge Base is fully self-contained:
 
 1. **Deploy Knowledge Base** - All components deploy together
 2. **RAG is enabled** - Query Service is ready to serve retrieval requests
-3. **Optional: Deploy Agent** - For LLM inference with RAG augmentation
+3. **Optional: Enable MCP Server** - Set `spec.mcpServer.enabled: true` in KnowledgeBase CRD
+4. **Optional: Deploy Agent** - For LLM inference with RAG augmentation
 
 ## Relationship to Agent
 
@@ -45,6 +64,7 @@ The Knowledge Base operates independently from the Agent (vLLM model server). Th
 - Knowledge bases to be updated without Agent downtime
 - Different teams to manage their own knowledge bases
 - Flexible scaling of storage vs. compute
+- MCP server provides tool-based access for AI assistants
 
 ## Terminology
 
