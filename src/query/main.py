@@ -161,13 +161,20 @@ async def ready():
     Returns 200 if the service is ready to handle requests.
     Checks connectivity to embedding service and vector store.
     """
-    if embedding_client is None or vector_store is None:
+    if settings is None or vector_store is None:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Service not initialized",
         )
     
-    embedding_healthy = await embedding_client.health_check()
+    # Direct health check - aphex_clients health_check has base_url bug
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(f"{settings.embedding_service_url}/health", timeout=5)
+            embedding_healthy = resp.status_code == 200
+        except Exception:
+            embedding_healthy = False
+    
     vector_healthy = await vector_store.health_check()
     
     if not embedding_healthy:
