@@ -335,6 +335,88 @@ kubectl logs -f job/monitor-manual -n archon-knowledge-base
 kubectl delete job monitor-manual -n archon-knowledge-base
 ```
 
+## Kiro Hook: Knowledge Base Sync
+
+The Knowledge Base Sync hook automates synchronization of code intelligence data to the knowledge base after documentation generation completes.
+
+### Hook Configuration
+
+**Location:** `.kiro/hooks/archon-knowledge-base-sync.json`
+
+```json
+{
+  "name": "Archon Knowledge Base Sync",
+  "version": "1.0.0",
+  "description": "Sync code intelligence to knowledge base after documentation generation",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "If documentation was generated, sync the updated packages to the knowledge base using the sync_to_knowledge_base tool."
+  }
+}
+```
+
+### Trigger Conditions
+
+The hook triggers on the `agentStop` event, which fires when an agent completes its task. The hook then:
+
+1. Evaluates whether documentation was generated during the agent session
+2. If documentation was generated, invokes the `sync_to_knowledge_base` MCP tool
+3. Syncs updated packages to the Code Graph (PostgreSQL) and Vector Store (Qdrant)
+
+**Expected Behavior:**
+- **Documentation generated**: Hook triggers sync, updating nodes, edges, and chunks
+- **No documentation generated**: Hook evaluates and skips sync (no action taken)
+- **Sync already current**: Change detection skips sync if SCIP index hash unchanged
+
+### Manual Sync Trigger
+
+To manually trigger a knowledge base sync without waiting for the hook:
+
+```bash
+# Via MCP tool (if available in your environment)
+# Use the sync_to_knowledge_base tool with:
+# - workspacePath: Path to the workspace root
+# - packages: Optional list of specific packages to sync
+# - force: Set to true to bypass change detection
+```
+
+### Troubleshooting Hook Failures
+
+**Hook Not Triggering**
+
+| Symptom | Cause | Resolution |
+|---------|-------|------------|
+| Hook never fires | Hook file not in `.kiro/hooks/` | Verify file exists at `.kiro/hooks/archon-knowledge-base-sync.json` |
+| Hook file ignored | Invalid JSON syntax | Validate JSON with `jq . .kiro/hooks/archon-knowledge-base-sync.json` |
+| Hook skipped | Agent session had no documentation tasks | Expected behavior - hook only syncs when docs generated |
+
+**Sync Failures After Hook Triggers**
+
+| Symptom | Cause | Resolution |
+|---------|-------|------------|
+| "sync_to_knowledge_base tool not found" | MCP tool not registered | Ensure ArchonDocumentationMCPTools is installed and configured |
+| "Embedding service unavailable" | Embedding service down | Check embedding pod status: `kubectl get pods -l app=embedding -n archon-knowledge-base` |
+| "Database connection failed" | PostgreSQL unreachable | Check postgres pod: `kubectl get pods -l app=postgres -n archon-knowledge-base` |
+| "Qdrant connection failed" | Qdrant unreachable | Check qdrant pod: `kubectl get pods -l app=qdrant -n archon-knowledge-base` |
+| "Hash storage failure" | Cannot write to `.archon/sync-state.json` | Check file permissions and disk space |
+
+**Partial Sync Failures**
+
+If sync partially fails (some packages succeed, others fail):
+
+1. Check the sync result for specific package errors
+2. Review logs for the failed packages
+3. Retry with `force=true` to bypass change detection
+4. If persistent, check for invalid ARN formats in SCIP parse results
+
+**Source**
+- `.kiro/hooks/archon-knowledge-base-sync.json` - Hook configuration
+- `src/sync/service.py` - KnowledgeBaseSyncService implementation
+- `src/sync/change_detector.py` - Hash-based change detection
+
 ## Agent Deployment
 
 The Agent CRD provisions model servers (vLLM) and optionally references Knowledge Bases for RAG capabilities.
@@ -503,7 +585,6 @@ kubectl logs -l agent=llama-70b-unified,app=orchestrator -n agents
 - `manifests/secrets.yaml` - Secrets template
 - `manifests/embedding-deployment.yaml` - Embedding deployment with probes
 - `manifests/query-deployment.yaml` - Query deployment with probes
-- `manifests/monitor-cronjob.yaml` - Monitor CronJob
 - `manifests/init-job.yaml` - Schema initialization
 - `pipeline/README.md` - Pipeline documentation
 - AphexPlatformInfrastructure: `platform/base/platform-controller/controller/controllers/agent_controller.go` - Agent controller

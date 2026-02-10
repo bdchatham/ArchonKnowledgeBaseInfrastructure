@@ -1,0 +1,4 @@
+# file: /Users/brandonchatham/personal-work/ArchonKnowledgeBaseInfrastructure/src/graph/repository.py
+# hypothesis_version: 6.141.1
+
+['INSERT 0 1', 'arn', 'documentation', 'file_path', 'from_arn', 'index_hash', 'inserted', 'kind', 'line_number', 'name', 'package', 'path', 'signature', 'symbol', 'to_arn', 'type', 'workspace']

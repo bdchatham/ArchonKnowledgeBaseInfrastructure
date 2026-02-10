@@ -1,0 +1,4 @@
+# file: /Users/brandonchatham/personal-work/ArchonKnowledgeBaseInfrastructure/src/common/state_tracker.py
+# hypothesis_version: 6.141.1
+
+['content_hash', 'last_checked', 'last_modified', 'repo_file_path', 'sha']

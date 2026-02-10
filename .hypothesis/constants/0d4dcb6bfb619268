@@ -1,0 +1,4 @@
+# file: /Users/brandonchatham/personal-work/ArchonKnowledgeBaseInfrastructure/src/graph/schema.py
+# hypothesis_version: 6.141.1
+
+['Node', 'class', 'code', 'contains', 'doc', 'documents', 'extends', 'file', 'function', 'implements', 'imports', 'infra', 'k8s', 'method', 'module', 'package', 'references', 'repository', 'type', 'variable']

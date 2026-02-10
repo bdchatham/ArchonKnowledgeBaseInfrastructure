@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for Knowledge Base services
-# Supports Query, Monitor, and Embedding services via build targets
+# Supports Query and Embedding services via build targets
 
 # Base stage with Python and core dependencies
 FROM python:3.11-slim as base
@@ -29,13 +29,6 @@ EXPOSE 8080
 ENV PYTHONPATH=/app
 
 CMD ["python", "-m", "uvicorn", "src.query.main:app", "--host", "0.0.0.0", "--port", "8080"]
-
-# Monitor service target
-FROM base as monitor
-
-ENV PYTHONPATH=/app
-
-CMD ["python", "-m", "src.monitor.main"]
 
 # Embedding service target
 FROM python:3.11-slim as embedding-base

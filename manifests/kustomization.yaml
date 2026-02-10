@@ -4,27 +4,7 @@ kind: Kustomization
 namespace: archon-knowledge-base
 
 resources:
-  # Configuration
-  - configmap.yaml
-  - secrets.yaml
-  # KnowledgeBase CRD
   - knowledgebase.yaml
-  # StatefulSets (databases) - must be ready before dependents
-  - qdrant-statefulset.yaml
-  - qdrant-service.yaml
-  - postgres-statefulset.yaml
-  - postgres-service.yaml
-  # Init job - runs after databases are ready
-  - init-job.yaml
-  # Embedding service - must be ready before query/monitor
-  - embedding-deployment.yaml
-  - embedding-service.yaml
-  # Application workloads
-  - query-deployment.yaml
-  - query-service.yaml
-  - monitor-cronjob.yaml
-  # Ingress last
-  - ingress.yaml
 
 labels:
   - pairs:

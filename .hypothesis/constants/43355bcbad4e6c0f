@@ -1,0 +1,4 @@
+# file: /Users/brandonchatham/personal-work/ArchonKnowledgeBaseInfrastructure/src/sync/doc_generator.py
+# hypothesis_version: 6.141.1
+
+['#', '## Overview', '## Symbols', '**Related:**', '**Source**', '---', '.', '/', 'Classes', 'Contains', 'Extends', 'Functions', 'Implements', 'Imports', 'Methods', 'Modules', 'References', 'Types', 'Variables', '```', 'class', 'contains', 'extends', 'function', 'implements', 'imports', 'method', 'module', 'references', 'type', 'type definition', 'variable']

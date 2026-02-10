@@ -149,6 +149,91 @@ Stores:
 - Last modified and last checked timestamps
 - Content hashes for additional verification
 
+## Code Graph Module
+
+The Code Graph provides a GraphQL-queryable representation of code structure and relationships. It stores code symbols (functions, classes, methods) and their relationships (contains, references, implements) in PostgreSQL, enabling graph traversal for code navigation.
+
+### Purpose
+
+- Store code symbols extracted from SCIP indexes with ARN-based identification
+- Store relationships between symbols (contains, references, implements, extends, imports, documents)
+- Expose GraphQL API for querying code structure and traversing relationships
+- Support bulk sync operations from SCIP parse results
+
+### Components
+
+**PostgreSQL Tables:**
+- `code_graph_nodes`: Stores code symbols with ARN as primary key
+- `code_graph_edges`: Stores relationships with foreign key constraints and cascade delete
+
+**GraphQL API:**
+- Query operations: `node`, `searchNodes`, `findReferences`, `symbolsInFile`, `symbolsInPackage`, `traverse`
+- Mutation operations: `syncFromScip`, `prunePackage`
+
+**Source**
+- `src/graph/schema.py` - GraphQL schema definition
+- `src/graph/resolvers.py` - GraphQL resolvers
+- `src/graph/models.py` - SQLAlchemy models
+- `migrations/001_code_graph_tables.sql` - Database schema
+
+## Enhanced Vector Store
+
+The Vector Store is enhanced with ARN metadata to enable navigation between semantic search results and the Code Graph. Each chunk includes ARN references for graph traversal.
+
+### Purpose
+
+- Store document embeddings with ARN metadata for graph integration
+- Enable filtering by package and symbol kind in similarity search
+- Return ARN metadata with search results for Code Graph navigation
+- Support bulk sync operations from Archon documentation
+
+### Enhancements
+
+**ARN Metadata Fields:**
+- `arn`: ARN of the documented symbol/file
+- `related_arns`: ARNs referenced in the chunk content
+- `symbol_name`: Name of the symbol being documented
+- `symbol_kind`: Kind of symbol (function, class, method, etc.)
+- `package`: Package name for filtering
+
+**Source**
+- `src/vector/models.py` - ArchonChunk, SearchResult dataclasses
+- `src/vector/store.py` - Vector store service with ARN support
+- `src/vector/filters.py` - Qdrant filter builders
+
+## Sync Service
+
+The Sync Service orchestrates synchronization of code intelligence data (SCIP parse results and Archon documentation) to the knowledge base. It ensures the Code Graph and Vector Store reflect the current state of the codebase.
+
+### Purpose
+
+- Transform SCIP symbols to Code Graph nodes using ARN as primary key
+- Transform SCIP relationships to Code Graph edges
+- Chunk and embed Archon docs with ARN metadata
+- Upsert chunks to Vector Store
+- Prune stale nodes and chunks when symbols are removed
+- Skip synchronization when SCIP index hash hasn't changed
+
+### Components
+
+**Sync Orchestrator:**
+- `sync_package()`: Sync a single package's code intelligence
+- `sync_workspace()`: Sync all packages in a workspace
+
+**Adapters:**
+- `GraphSyncAdapter`: Transforms SCIP data to Code Graph operations
+- `VectorSyncAdapter`: Chunks, embeds, and syncs Archon docs
+
+**Change Detection:**
+- Hash-based change detection to skip unchanged packages
+- State stored in `.archon/sync-state.json`
+
+**Source**
+- `src/sync/service.py` - KnowledgeBaseSyncService
+- `src/sync/graph_adapter.py` - Graph sync adapter
+- `src/sync/vector_adapter.py` - Vector sync adapter
+- `src/sync/change_detector.py` - Hash-based change detection
+
 ## Technology Stack
 
 | Component | Technology | Version |
@@ -156,6 +241,8 @@ Stores:
 | Embedding Service | FastAPI + sentence-transformers | 0.109+ |
 | Query Service | FastAPI + Uvicorn | 0.109+ |
 | MCP Server | FastAPI + AphexServiceClients | latest |
+| Code Graph | PostgreSQL + GraphQL | 15-alpine |
+| GraphQL Library | graphql-core or strawberry-graphql | latest |
 | HTTP Client | httpx | 0.26+ |
 | Service Clients | AphexServiceClients | latest |
 | Vector Database | Qdrant | 1.16.3 |
@@ -217,6 +304,50 @@ Kiro CLI → MCP Server → Query Service → Embedding Service
 5. Results are formatted as MCP response with provenance
 6. Kiro uses results to ground decisions in actual documentation
 
+## Phase 2 System Context
+
+The following diagram shows the complete system with Phase 2 components (Code Graph, Enhanced Vector Store, Sync Service):
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     ArchonKnowledgeBaseInfrastructure                        │
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │                    Knowledge Base Sync Service                        │  │
+│  │  ┌─────────────────┐              ┌─────────────────┐                │  │
+│  │  │ Graph Sync      │              │ Vector Sync     │                │  │
+│  │  │ Adapter         │              │ Adapter         │                │  │
+│  │  └────────┬────────┘              └────────┬────────┘                │  │
+│  └───────────┼────────────────────────────────┼──────────────────────────┘  │
+│              │                                │                              │
+│              ▼                                ▼                              │
+│  ┌─────────────────────────┐    ┌─────────────────────────┐                │
+│  │    PostgreSQL           │    │    Qdrant               │                │
+│  │    Code Graph           │    │    Vector Store         │                │
+│  │    - code_graph_nodes   │    │    - embeddings         │                │
+│  │    - code_graph_edges   │    │    - ARN metadata       │                │
+│  └─────────────────────────┘    └─────────────────────────┘                │
+│              │                                │                              │
+│              ▼                                ▼                              │
+│  ┌─────────────────────────┐    ┌─────────────────────────┐                │
+│  │    GraphQL API          │    │    Query Service        │                │
+│  │    - node queries       │    │    - semantic search    │                │
+│  │    - traversal          │    │    - ARN-enriched       │                │
+│  └─────────────────────────┘    └─────────────────────────┘                │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    ▲
+                                    │
+┌───────────────────────────────────┼─────────────────────────────────────────┐
+│                    External Consumers                                        │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐         │
+│  │ ArchonMCPServer │    │ ArchonDocTools  │    │ Kiro Agent      │         │
+│  │ - archon.search │    │ - sync trigger  │    │ - queries       │         │
+│  │ - archon.graph  │    │ - SCIP indexes  │    │ - navigation    │         │
+│  │ - archon.resolve│    │ - Archon docs   │    │                 │         │
+│  └─────────────────┘    └─────────────────┘    └─────────────────┘         │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
 ## Dependencies
 
 ### Internal Services
@@ -265,12 +396,10 @@ The Knowledge Base is fully self-contained. No external embedding service is req
 **Source**
 - `src/embedding/main.py` - Embedding service implementation
 - `src/query/main.py` - Query service implementation
-- `src/monitor/main.py` - Monitor service implementation
 - `src/common/embedding_client.py` - Embedding client
 - `src/common/vector_store.py` - Qdrant wrapper
 - `src/common/state_tracker.py` - PostgreSQL state tracker
 - `manifests/embedding-deployment.yaml` - Embedding deployment
 - `manifests/query-deployment.yaml` - Query deployment
-- `manifests/monitor-cronjob.yaml` - Monitor CronJob
 - `manifests/qdrant-statefulset.yaml` - Qdrant deployment
 - `manifests/postgres-statefulset.yaml` - PostgreSQL deployment

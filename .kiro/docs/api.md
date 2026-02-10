@@ -236,6 +236,243 @@ curl http://localhost:8000/health
 - `src/embedding/main.py` - Embedding API implementation
 - `manifests/ingress.yaml` - Ingress configuration with CORS and rate limiting
 
+## GraphQL Code Graph API
+
+The Code Graph exposes a GraphQL API for querying code structure and relationships.
+
+### Base URL
+
+- **Internal**: `http://graph.archon-knowledge-base.svc.cluster.local:8080/graphql`
+
+### GraphQL Schema
+
+#### Types
+
+```graphql
+type Node {
+  arn: ID!
+  type: NodeType!
+  workspace: String!
+  package: String!
+  path: String!
+  symbol: String
+  kind: SymbolKind
+  name: String!
+  signature: String
+  documentation: String
+  filePath: String
+  lineNumber: Int
+  
+  # Relationship traversal
+  contains: [Node!]!
+  containedBy: Node
+  references: [Node!]!
+  referencedBy: [Node!]!
+  implements: [Node!]!
+  implementedBy: [Node!]!
+  extends: [Node!]!
+  extendedBy: [Node!]!
+  imports: [Node!]!
+  importedBy: [Node!]!
+  documentationNode: Node
+}
+
+enum NodeType {
+  CODE
+  DOC
+  K8S
+  INFRA
+}
+
+enum SymbolKind {
+  FUNCTION
+  CLASS
+  METHOD
+  VARIABLE
+  TYPE
+  MODULE
+  FILE
+  PACKAGE
+}
+
+enum EdgeType {
+  CONTAINS
+  REFERENCES
+  IMPLEMENTS
+  EXTENDS
+  IMPORTS
+  DOCUMENTS
+}
+```
+
+#### Query Operations
+
+| Operation | Description | Parameters |
+|-----------|-------------|------------|
+| `node(arn: ID!)` | Lookup node by ARN | `arn`: ARN of the node |
+| `searchNodes(name: String!, kind: SymbolKind, package: String, limit: Int)` | Search by name pattern | `name`: search pattern, `kind`: optional filter, `package`: optional filter, `limit`: max results (default 20) |
+| `findReferences(arn: ID!)` | Find all references to a symbol | `arn`: ARN of the symbol |
+| `symbolsInFile(path: String!, package: String!)` | List symbols in a file | `path`: file path, `package`: package name |
+| `symbolsInPackage(package: String!, kind: SymbolKind)` | List symbols in a package | `package`: package name, `kind`: optional filter |
+| `traverse(startArn: ID!, edgeTypes: [EdgeType!]!, depth: Int)` | Traverse relationships | `startArn`: starting node, `edgeTypes`: edge types to follow, `depth`: max depth (default 1) |
+
+#### Mutation Operations
+
+| Operation | Description | Parameters |
+|-----------|-------------|------------|
+| `syncFromScip(packagePath: String!, symbols: [SymbolInput!]!, relationships: [RelationshipInput!]!, indexHash: String!)` | Bulk upsert from SCIP | `packagePath`: package path, `symbols`: symbol data, `relationships`: relationship data, `indexHash`: SCIP index hash |
+| `prunePackage(package: String!, keepArns: [ID!]!)` | Remove stale nodes | `package`: package name, `keepArns`: ARNs to keep |
+
+### Example Queries
+
+**Lookup by ARN:**
+```graphql
+query {
+  node(arn: "arn:archon:code:personal-work/ArchonAgent/src/orchestrator/main.py#Orchestrator") {
+    name
+    kind
+    signature
+    documentation
+    references {
+      arn
+      name
+    }
+  }
+}
+```
+
+**Search by name:**
+```graphql
+query {
+  searchNodes(name: "Orchestrator", kind: CLASS, limit: 10) {
+    arn
+    name
+    package
+    filePath
+    lineNumber
+  }
+}
+```
+
+**Traverse relationships:**
+```graphql
+query {
+  traverse(
+    startArn: "arn:archon:code:personal-work/ArchonAgent/src/orchestrator/main.py#Orchestrator"
+    edgeTypes: [REFERENCES, IMPLEMENTS]
+    depth: 2
+  ) {
+    arn
+    name
+    kind
+  }
+}
+```
+
+**Source**
+- `src/graph/schema.py` - GraphQL schema definition
+- `src/graph/resolvers.py` - GraphQL resolvers
+
+## Enhanced Search Results
+
+The Query Service returns ARN-enriched search results for graph traversal.
+
+### Enhanced Response Format
+
+```json
+{
+  "chunks": [
+    {
+      "content": "The deployment pipeline uses ArgoCD...",
+      "source": "https://github.com/org/repo/.kiro/docs/operations.md",
+      "chunk_index": 2,
+      "score": 0.89,
+      "arn": "arn:archon:doc:personal-work/ArchonAgent/src/orchestrator/main.py",
+      "related_arns": [
+        "arn:archon:code:personal-work/ArchonAgent/src/orchestrator/main.py#Orchestrator"
+      ],
+      "symbol_name": "Orchestrator",
+      "symbol_kind": "class",
+      "package": "ArchonAgent"
+    }
+  ],
+  "query": "How does the deployment pipeline work?"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `arn` | string | ARN of the documented symbol/file |
+| `related_arns` | array | ARNs referenced in the chunk content |
+| `symbol_name` | string | Name of the symbol being documented (optional) |
+| `symbol_kind` | string | Kind of symbol (optional) |
+| `package` | string | Package name for filtering |
+
+### Filtering Parameters
+
+The `/v1/retrieve` endpoint supports additional filtering:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `package` | string | Filter results by package name |
+| `symbol_kind` | string | Filter results by symbol kind |
+
+**Example with filters:**
+```bash
+curl -X POST http://localhost:8080/v1/retrieve \
+  -H "Content-Type: application/json" \
+  -d '{"query": "orchestrator", "k": 5, "package": "ArchonAgent", "symbol_kind": "class"}'
+```
+
+## Sync Service API
+
+The Sync Service is exposed via MCP tool in ArchonDocumentationMCPTools.
+
+### sync_to_knowledge_base Tool
+
+**Input Schema:**
+```json
+{
+  "workspacePath": "/path/to/workspace",
+  "packages": ["ArchonAgent", "ArchonMCPServer"],
+  "force": false
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `workspacePath` | string | Yes | Path to workspace root |
+| `packages` | array | No | Specific packages to sync (all if omitted) |
+| `force` | boolean | No | Bypass change detection (default: false) |
+
+**Output Schema:**
+```json
+{
+  "success": true,
+  "packagesSynced": [
+    {
+      "package": "ArchonAgent",
+      "nodesCreated": 150,
+      "nodesUpdated": 25,
+      "chunksUpserted": 45
+    }
+  ],
+  "packagesSkipped": ["ArchonMCPServer"],
+  "errors": []
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | boolean | Overall sync success |
+| `packagesSynced` | array | Packages that were synchronized |
+| `packagesSkipped` | array | Packages skipped (unchanged hash) |
+| `errors` | array | Errors by package |
+
+**Source**
+- `ArchonDocumentationMCPTools/src/tools/knowledge_base_sync.ts` - MCP tool implementation
+- `src/sync/service.py` - KnowledgeBaseSyncService
+
 ## Agent CRD API
 
 The Agent CRD provisions model servers and optionally orchestrators for RAG-augmented inference.

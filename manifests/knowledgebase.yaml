@@ -6,6 +6,7 @@ metadata:
 spec:
   displayName: "Aphex Platform Documentation"
   description: "RAG knowledge base for Aphex platform repositories"
+  organization: arbiter
   repositories:
     - url: https://github.com/bdchatham/AphexPlatformInfrastructure
       branch: mainline

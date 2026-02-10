@@ -1,0 +1,4 @@
+# file: /Users/brandonchatham/personal-work/ArchonKnowledgeBaseInfrastructure/src/sync/scip_parser.py
+# hypothesis_version: 6.141.1
+
+['.', '.()`#', '/', 'class', 'code', 'contains', 'default', 'extends', 'function', 'implements', 'is_definition', 'is_implementation', 'is_reference', 'is_type_definition', 'method', 'module', 'references', 'type', 'variable']

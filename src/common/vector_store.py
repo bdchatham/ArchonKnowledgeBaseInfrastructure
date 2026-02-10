@@ -24,6 +24,7 @@ class SearchResult:
     source: str
     chunk_index: int
     score: float
+    metadata: Optional[dict] = None
 
 
 class VectorStoreError(Exception):
@@ -101,6 +102,7 @@ class VectorStore:
                     source=hit.payload.get("source", ""),
                     chunk_index=hit.payload.get("chunk_index", 0),
                     score=hit.score,
+                    metadata=self._extract_metadata(hit.payload),
                 )
                 for hit in results.points
             ]
@@ -238,6 +240,16 @@ class VectorStore:
         except Exception:
             return False
     
+    @staticmethod
+    def _extract_metadata(payload: dict) -> dict:
+        """Extract non-core metadata fields from a Qdrant payload.
+
+        Core fields (content, source, chunk_index) are stored directly
+        on SearchResult. Remaining fields like ARN are returned as metadata.
+        """
+        core_fields = {"content", "source", "chunk_index"}
+        return {k: v for k, v in payload.items() if k not in core_fields}
+
     @staticmethod
     def _hash_id(id: str) -> int:
         """Convert string ID to integer hash for Qdrant.

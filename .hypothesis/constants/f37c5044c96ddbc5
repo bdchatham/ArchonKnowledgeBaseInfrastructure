@@ -1,0 +1,4 @@
+# file: /Users/brandonchatham/personal-work/ArchonKnowledgeBaseInfrastructure/src/common/config.py
+# hypothesis_version: 6.141.1
+
+[200, 1000, '.env', '5432', 'PostgreSQL host', 'PostgreSQL password', 'PostgreSQL port', 'PostgreSQL user', '[]', 'archon', 'archon-docs', 'http://qdrant:6333', 'password', 'postgres', 'utf-8']

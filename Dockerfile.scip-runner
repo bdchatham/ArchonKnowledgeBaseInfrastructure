@@ -1,0 +1,59 @@
+# SCIP Runner Container Image
+# Bundles Node.js SCIP indexers, Python sync service, language detector,
+# and doc generator for use in the Tekton sync pipeline.
+#
+# Image: ghcr.io/bdchatham/archon-scip-runner:latest
+#
+# Source:
+# - .kiro/specs/scip-sync-pipeline/design.md (SCIP Runner Container Image)
+# - .kiro/specs/scip-sync-pipeline/requirements.md (Requirements 3.2, 3.3)
+
+# Stage 1: Install Node.js SCIP indexers
+FROM node:20-slim AS node-stage
+
+RUN npm install -g \
+    @sourcegraph/scip-typescript \
+    @sourcegraph/scip-python \
+    && npm cache clean --force
+
+# Stage 2: Python runtime with sync service and Node.js from stage 1
+FROM python:3.11-slim AS runner
+
+WORKDIR /app
+
+# Install system dependencies: git (cloning), curl (health checks), kubectl (status updates)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    && curl -LO "https://dl.k8s.io/release/$(curl -Ls https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl \
+    && rm kubectl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Node.js runtime and globally installed SCIP indexers from node stage
+COPY --from=node-stage /usr/local/bin/node /usr/local/bin/node
+COPY --from=node-stage /usr/local/lib/node_modules /usr/local/lib/node_modules
+COPY --from=node-stage /usr/local/bin/npx /usr/local/bin/npx
+
+# Symlink SCIP indexer binaries so they are on PATH
+RUN ln -s /usr/local/lib/node_modules/@sourcegraph/scip-typescript/dist/src/main.js /usr/local/bin/scip-typescript \
+    && chmod +x /usr/local/bin/scip-typescript \
+    && ln -s /usr/local/lib/node_modules/@sourcegraph/scip-python/dist/src/main.js /usr/local/bin/scip-python \
+    && chmod +x /usr/local/bin/scip-python
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy sync service modules needed by the SCIP runner
+COPY src/__init__.py ./src/__init__.py
+COPY src/sync/ ./src/sync/
+COPY src/common/ ./src/common/
+COPY src/graph/ ./src/graph/
+COPY src/vector/ ./src/vector/
+
+# Create non-root user
+RUN useradd --create-home --shell /bin/bash appuser
+USER appuser
+
+ENV PYTHONPATH=/app

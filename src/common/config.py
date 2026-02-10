@@ -4,6 +4,8 @@ All configuration is loaded from environment variables, making the services
 container-friendly and configurable via Kubernetes ConfigMaps and Secrets.
 """
 
+from typing import Optional
+
 from pydantic_settings import BaseSettings
 from pydantic import Field
 
@@ -84,7 +86,7 @@ class RetrievalConfiguration(BaseSettings):
 class MonitorConfiguration(BaseSettings):
     """Configuration for document monitoring."""
     
-    github_token: str | None = Field(
+    github_token: Optional[str] = Field(
         default=None,
         description="GitHub personal access token for API access"
     )

@@ -1,0 +1,12 @@
+{
+  "name": "Archon Knowledge Base Sync",
+  "version": "1.0.0",
+  "description": "Sync code intelligence to knowledge base after documentation generation",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "If documentation was generated, sync the updated packages to the knowledge base using the sync_to_knowledge_base tool."
+  }
+}

@@ -1,0 +1,4 @@
+# file: /Users/brandonchatham/personal-work/ArchonKnowledgeBaseInfrastructure/src/sync/graph_adapter.py
+# hypothesis_version: 6.141.1
+
+['CLASS', 'CODE', 'CONTAINS', 'DOCUMENTS', 'EXTENDS', 'FILE', 'FUNCTION', 'IMPLEMENTS', 'IMPORTS', 'METHOD', 'MODULE', 'PACKAGE', 'REFERENCES', 'TYPE', 'VARIABLE', 'arn', 'class', 'contains', 'data', 'documentation', 'documents', 'edgesCreated', 'edgesRemoved', 'errors', 'extends', 'file', 'filePath', 'fromArn', 'function', 'implements', 'imports', 'indexHash', 'keepArns', 'kind', 'lineNumber', 'message', 'method', 'module', 'name', 'nodesCreated', 'nodesUpdated', 'package', 'packagePath', 'path', 'prunePackage', 'references', 'relationships', 'signature', 'symbol', 'symbols', 'syncFromScip', 'toArn', 'type', 'variable', 'workspace']

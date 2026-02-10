@@ -1,0 +1,4 @@
+# file: /Users/brandonchatham/personal-work/ArchonKnowledgeBaseInfrastructure/src/common/embedding.py
+# hypothesis_version: 6.141.1
+
+[1.0, 5.0, 60.0, 200, 400, 500, 503, 504, 768, '/', '/health', '/v1/embeddings', 'data', 'embedding', 'input', 'model']
