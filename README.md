@@ -1,6 +1,6 @@
-# Archon-Ready Repository Template
+# Archon Knowledge Base Infrastructure
 
-This is a GitHub repository template configured for the **Archon** RAG system. It includes Kiro steering that automatically maintains accurate, RAG-ready documentation.
+SCIP-based code intelligence pipeline for the Archon RAG system. Provides sync services, vector storage, and code graph indexing across platform repositories.
 
 ## What's Included
 
