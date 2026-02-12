@@ -1,33 +1,51 @@
 apiVersion: aphex.io/v1alpha1
 kind: KnowledgeBase
 metadata:
-  name: platform-docs
-  namespace: archon-knowledge-base
+  name: archon-knowledge
 spec:
-  displayName: "Aphex Platform Documentation"
-  description: "RAG knowledge base for Aphex platform repositories"
-  organization: arbiter
-  repositories:
-    - url: https://github.com/bdchatham/AphexPlatformInfrastructure
+  name: "Archon Code Intelligence"
+  description: "SCIP-indexed code intelligence for Archon platform repositories"
+  organization: archon
+  sources:
+    - url: https://github.com/bdchatham/AphexAgentController
       branch: mainline
-      paths:
-        - .kiro/docs
-    - url: https://github.com/bdchatham/ArchonKnowledgeBaseInfrastructure
+      sourceType: code
+    - url: https://github.com/bdchatham/AphexControllerRuntime
       branch: mainline
-      paths:
-        - .kiro/docs
-    - url: https://github.com/bdchatham/ArchonAgent
-      branch: mainline
-      paths:
-        - .kiro/docs
+      sourceType: code
     - url: https://github.com/bdchatham/AphexCLI
       branch: mainline
-      paths:
-        - .kiro/docs
+      sourceType: code
+    - url: https://github.com/bdchatham/AphexKnowledgeBaseController
+      branch: mainline
+      sourceType: code
+    - url: https://github.com/bdchatham/AphexOrganizationController
+      branch: mainline
+      sourceType: code
     - url: https://github.com/bdchatham/AphexPipelineResources
       branch: mainline
-      paths:
-        - .kiro/docs
+      sourceType: code
+    - url: https://github.com/bdchatham/AphexPlatformInfrastructure
+      branch: mainline
+      sourceType: code
+    - url: https://github.com/bdchatham/AphexRepoBindingController
+      branch: mainline
+      sourceType: code
+    - url: https://github.com/bdchatham/AphexServiceClients
+      branch: mainline
+      sourceType: code
+    - url: https://github.com/bdchatham/ArchonAgent
+      branch: mainline
+      sourceType: code
+    - url: https://github.com/bdchatham/ArchonDocumentationMCPTools
+      branch: mainline
+      sourceType: code
+    - url: https://github.com/bdchatham/ArchonKnowledgeBaseInfrastructure
+      branch: mainline
+      sourceType: code
+    - url: https://github.com/bdchatham/ArchonMCPServer
+      branch: mainline
+      sourceType: code
   mcp:
     image: ghcr.io/bdchatham/archon-mcp-server:latest
     port: 3000

@@ -6,14 +6,9 @@ metadata:
     app.kubernetes.io/part-of: archon-knowledge-base
 spec:
   description: >-
-    Deploys the Archon Knowledge Base infrastructure via ArgoCD.
-    
-    The Knowledge Base is fully self-contained with its own embedding service.
-    No external dependencies are required for deployment.
-    
-    This pipeline creates an ArgoCD Application that syncs the knowledge base
-    manifests from Git, deploying Qdrant, PostgreSQL, Embedding service,
-    Query service, and Monitor CronJob to the archon-knowledge-base namespace.
+    Deploys the Archon Knowledge Base via ArgoCD. Creates an ArgoCD Application
+    that syncs the KnowledgeBase manifest from Git into platform-system. The KB
+    controller then provisions all infrastructure into a managed kb-{name} namespace.
 
   params:
     - name: git-url
@@ -34,8 +29,8 @@ spec:
       default: archon-knowledge-base
     - name: target-namespace
       type: string
-      description: Target namespace for deployment
-      default: archon-knowledge-base
+      description: Target namespace for the KnowledgeBase resource
+      default: platform-system
     - name: app-project
       type: string
       description: ArgoCD AppProject for isolation
