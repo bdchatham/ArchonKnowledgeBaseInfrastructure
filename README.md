@@ -39,3 +39,4 @@ See `CLAUDE.md` for the complete documentation contract.
 ## License
 
 [Add your license]
+
