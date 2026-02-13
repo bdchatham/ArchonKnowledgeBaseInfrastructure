@@ -30,7 +30,7 @@ spec:
     - name: target-namespace
       type: string
       description: Target namespace for the KnowledgeBase resource
-      default: platform-system
+      default: org-archon
     - name: app-project
       type: string
       description: ArgoCD AppProject for isolation
