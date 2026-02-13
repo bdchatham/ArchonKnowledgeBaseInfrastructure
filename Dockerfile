@@ -30,6 +30,15 @@ ENV PYTHONPATH=/app
 
 CMD ["python", "-m", "uvicorn", "src.query.main:app", "--host", "0.0.0.0", "--port", "8080"]
 
+# Graph service target
+FROM base as graph
+
+EXPOSE 8081
+
+ENV PYTHONPATH=/app
+
+CMD ["python", "-m", "uvicorn", "src.graph.main:app", "--host", "0.0.0.0", "--port", "8081"]
+
 # Embedding service target
 FROM python:3.11-slim as embedding-base
 

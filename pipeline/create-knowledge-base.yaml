@@ -1,0 +1,154 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: create-knowledge-base
+  labels:
+    app.kubernetes.io/part-of: archon-knowledge-base
+spec:
+  description: >-
+    Creates a KnowledgeBase CRD in platform-system. The KB controller
+    provisions all infrastructure into a managed kb-{name} namespace.
+
+  params:
+    - name: kb-name
+      type: string
+      description: Name of the KnowledgeBase resource
+      default: archon-code
+    - name: organization
+      type: string
+      description: Organization that owns this knowledge base
+      default: archon
+    - name: display-name
+      type: string
+      description: Human-readable knowledge base name
+      default: Archon Code Intelligence
+    - name: description
+      type: string
+      description: Description of the knowledge base
+      default: SCIP-indexed code intelligence for Archon platform repositories
+    - name: sources
+      type: string
+      description: JSON array of source configurations
+      default: |
+        [
+          {"url": "https://github.com/bdchatham/AphexAgentController", "branch": "mainline", "sourceType": "code"},
+          {"url": "https://github.com/bdchatham/AphexControllerRuntime", "branch": "mainline", "sourceType": "code"},
+          {"url": "https://github.com/bdchatham/AphexCLI", "branch": "mainline", "sourceType": "code"},
+          {"url": "https://github.com/bdchatham/AphexKnowledgeBaseController", "branch": "mainline", "sourceType": "code"},
+          {"url": "https://github.com/bdchatham/AphexOrganizationController", "branch": "mainline", "sourceType": "code"},
+          {"url": "https://github.com/bdchatham/AphexPipelineResources", "branch": "mainline", "sourceType": "code"},
+          {"url": "https://github.com/bdchatham/AphexPlatformInfrastructure", "branch": "mainline", "sourceType": "code"},
+          {"url": "https://github.com/bdchatham/AphexRepoBindingController", "branch": "mainline", "sourceType": "code"},
+          {"url": "https://github.com/bdchatham/AphexServiceClients", "branch": "mainline", "sourceType": "code"},
+          {"url": "https://github.com/bdchatham/ArchonAgent", "branch": "mainline", "sourceType": "code"},
+          {"url": "https://github.com/bdchatham/ArchonDocumentationMCPTools", "branch": "mainline", "sourceType": "code"},
+          {"url": "https://github.com/bdchatham/ArchonKnowledgeBaseInfrastructure", "branch": "mainline", "sourceType": "code"},
+          {"url": "https://github.com/bdchatham/ArchonMCPServer", "branch": "mainline", "sourceType": "code"}
+        ]
+    - name: enable-mcp
+      type: string
+      description: Enable MCP server (true/false)
+      default: "true"
+    - name: mcp-image
+      type: string
+      description: MCP server container image
+      default: ghcr.io/bdchatham/archon-mcp-server:latest
+    - name: mcp-port
+      type: string
+      description: MCP server port
+      default: "3000"
+
+  tasks:
+    - name: create-knowledgebase-crd
+      params:
+        - name: kb-name
+          value: $(params.kb-name)
+        - name: organization
+          value: $(params.organization)
+        - name: display-name
+          value: $(params.display-name)
+        - name: description
+          value: $(params.description)
+        - name: sources
+          value: $(params.sources)
+        - name: enable-mcp
+          value: $(params.enable-mcp)
+        - name: mcp-image
+          value: $(params.mcp-image)
+        - name: mcp-port
+          value: $(params.mcp-port)
+      taskSpec:
+        params:
+          - name: kb-name
+          - name: organization
+          - name: display-name
+          - name: description
+          - name: sources
+          - name: enable-mcp
+          - name: mcp-image
+          - name: mcp-port
+        steps:
+          - name: create-knowledgebase
+            image: bitnami/kubectl:latest
+            script: |
+              #!/bin/bash
+              set -euo pipefail
+
+              KB_NAME="$(params.kb-name)"
+              NAMESPACE="platform-system"
+
+              echo "Creating KnowledgeBase: ${KB_NAME} in ${NAMESPACE}"
+              echo "Organization: $(params.organization)"
+              echo "Controller will provision infrastructure into kb-${KB_NAME}"
+
+              # Build sources YAML from JSON
+              SOURCES_YAML=$(echo '$(params.sources)' | python3 -c '
+              import sys, json
+              sources = json.load(sys.stdin)
+              for s in sources:
+                  print(f"    - url: {s[\"url\"]}")
+                  if "branch" in s:
+                      print(f"      branch: {s[\"branch\"]}")
+                  if "sourceType" in s:
+                      print(f"      sourceType: {s[\"sourceType\"]}")
+                  if "paths" in s:
+                      print(f"      paths:")
+                      for p in s["paths"]:
+                          print(f"        - {p}")
+              ')
+
+              # Build MCP spec if enabled
+              MCP_YAML=""
+              if [ "$(params.enable-mcp)" = "true" ]; then
+                MCP_YAML=$(cat <<MCPEOF
+                mcp:
+                  image: $(params.mcp-image)
+                  port: $(params.mcp-port)
+                  replicas: 1
+              MCPEOF
+              )
+              fi
+
+              cat <<EOF | kubectl apply -f -
+              apiVersion: aphex.io/v1alpha1
+              kind: KnowledgeBase
+              metadata:
+                name: ${KB_NAME}
+                namespace: ${NAMESPACE}
+              spec:
+                name: "$(params.display-name)"
+                description: "$(params.description)"
+                organization: $(params.organization)
+                sources:
+              ${SOURCES_YAML}
+                ${MCP_YAML}
+              EOF
+
+              echo ""
+              echo "✓ KnowledgeBase '${KB_NAME}' created in ${NAMESPACE}"
+              echo "  Infrastructure namespace: kb-${KB_NAME}"
+              echo ""
+              echo "Check status:"
+              echo "  kubectl get knowledgebase ${KB_NAME} -n ${NAMESPACE}"
+              echo ""
+              kubectl get knowledgebase ${KB_NAME} -n ${NAMESPACE}

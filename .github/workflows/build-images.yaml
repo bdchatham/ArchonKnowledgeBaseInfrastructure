@@ -29,6 +29,9 @@ jobs:
           - target: embedding
             image: archon-knowledge-base
             tag_suffix: embedding-latest
+          - target: graph
+            image: archon-knowledge-base
+            tag_suffix: graph-latest
 
     steps:
       - uses: actions/checkout@v4
