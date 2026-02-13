@@ -1,0 +1,31 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: archon-knowledge-base-infra
+  labels:
+    app.kubernetes.io/part-of: archon-knowledge-base
+spec:
+  description: >-
+    Deploys the Archon Knowledge Base via ArgoCD. Platform context provides
+    repo URL, target namespace, and AppProject automatically.
+
+  params:
+    - name: manifest-path
+      type: string
+      description: Path within the repository containing Kubernetes manifests
+      default: manifests
+
+  tasks:
+    - name: deploy-to-argocd
+      taskRef:
+        resolver: cluster
+        params:
+          - name: kind
+            value: task
+          - name: name
+            value: argocd-deployment
+          - name: namespace
+            value: tekton-pipelines
+      params:
+        - name: manifest-path
+          value: $(params.manifest-path)
