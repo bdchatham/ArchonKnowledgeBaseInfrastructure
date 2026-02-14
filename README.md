@@ -1,6 +1,17 @@
 # Archon Knowledge Base Infrastructure
 
-SCIP-based code intelligence pipeline for the Archon RAG system. Provides sync services, vector storage, and code graph indexing across platform repositories.
+SCIP-based code intelligence pipeline for the Archon RAG system. Provides sync services, vector storage, code graph indexing, and an MCP server across platform repositories.
+
+## Architecture
+
+The knowledge base deploys as a set of services in a dedicated namespace:
+
+- **PostgreSQL** — persistent storage for document state and code graph
+- **Qdrant** — vector store for embedding-based retrieval
+- **Embedding service** — generates vector embeddings from source documents
+- **Graph service** — GraphQL API over SCIP-derived code relationships
+- **Query service** — unified query interface across vector and graph stores
+- **MCP server** — Model Context Protocol endpoint for agent access
 
 ## What's Included
 
