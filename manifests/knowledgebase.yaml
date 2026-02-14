@@ -7,43 +7,56 @@ spec:
   description: "SCIP-indexed code intelligence for Archon platform repositories"
   organization: archon
   sources:
-    - url: https://github.com/bdchatham/AphexAgentController
+    - repoOrg: bdchatham
+      repoName: AphexAgentController
       branch: mainline
       sourceType: code
-    - url: https://github.com/bdchatham/AphexControllerRuntime
+    - repoOrg: bdchatham
+      repoName: AphexControllerRuntime
       branch: mainline
       sourceType: code
-    - url: https://github.com/bdchatham/AphexCLI
+    - repoOrg: bdchatham
+      repoName: AphexCLI
       branch: mainline
       sourceType: code
-    - url: https://github.com/bdchatham/AphexKnowledgeBaseController
+    - repoOrg: bdchatham
+      repoName: AphexKnowledgeBaseController
       branch: mainline
       sourceType: code
-    - url: https://github.com/bdchatham/AphexOrganizationController
+    - repoOrg: bdchatham
+      repoName: AphexOrganizationController
       branch: mainline
       sourceType: code
-    - url: https://github.com/bdchatham/AphexPipelineResources
+    - repoOrg: bdchatham
+      repoName: AphexPipelineResources
       branch: mainline
       sourceType: code
-    - url: https://github.com/bdchatham/AphexPlatformInfrastructure
+    - repoOrg: bdchatham
+      repoName: AphexPlatformInfrastructure
       branch: mainline
       sourceType: code
-    - url: https://github.com/bdchatham/AphexRepoBindingController
+    - repoOrg: bdchatham
+      repoName: AphexRepoBindingController
       branch: mainline
       sourceType: code
-    - url: https://github.com/bdchatham/AphexServiceClients
+    - repoOrg: bdchatham
+      repoName: AphexServiceClients
       branch: mainline
       sourceType: code
-    - url: https://github.com/bdchatham/ArchonAgent
+    - repoOrg: bdchatham
+      repoName: ArchonAgent
       branch: mainline
       sourceType: code
-    - url: https://github.com/bdchatham/ArchonDocumentationMCPTools
+    - repoOrg: bdchatham
+      repoName: ArchonDocumentationMCPTools
       branch: mainline
       sourceType: code
-    - url: https://github.com/bdchatham/ArchonKnowledgeBaseInfrastructure
+    - repoOrg: bdchatham
+      repoName: ArchonKnowledgeBaseInfrastructure
       branch: mainline
       sourceType: code
-    - url: https://github.com/bdchatham/ArchonMCPServer
+    - repoOrg: bdchatham
+      repoName: ArchonMCPServer
       branch: mainline
       sourceType: code
   mcp:
