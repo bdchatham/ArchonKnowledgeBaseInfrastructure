@@ -64,4 +64,4 @@ spec:
     port: 3000
     replicas: 1
   agent:
-    apiKeySecretName: "kiro-credentials"
+    credentialSecretName: "kiro-credentials"
