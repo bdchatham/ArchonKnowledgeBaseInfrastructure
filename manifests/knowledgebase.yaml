@@ -48,7 +48,7 @@ spec:
       branch: mainline
       sourceType: code
     - repoOrg: bdchatham
-      repoName: ArchonDocumentationMCPTools
+      repoName: AphexKnowledgeBaseMCPTools
       branch: mainline
       sourceType: code
     - repoOrg: bdchatham
@@ -63,3 +63,5 @@ spec:
     image: ghcr.io/bdchatham/archon-mcp-server:latest
     port: 3000
     replicas: 1
+  agent:
+    apiKeySecretName: "kiro-credentials"
