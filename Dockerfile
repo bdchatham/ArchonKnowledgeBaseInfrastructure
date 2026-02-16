@@ -40,7 +40,7 @@ ENV PYTHONPATH=/app
 CMD ["python", "-m", "uvicorn", "src.graph.main:app", "--host", "0.0.0.0", "--port", "8081"]
 
 # Embedding service target
-FROM nvidia/cuda:12.4.1-runtime-ubuntu22.04 AS embedding-base
+FROM nvidia/cuda:12.6.3-runtime-ubuntu22.04 AS embedding-base
 
 WORKDIR /app
 
@@ -52,7 +52,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PyTorch with CUDA first (dedicated index to avoid CPU fallback)
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu124
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu126
 
 # Copy requirements and install remaining dependencies
 COPY requirements-embedding.txt .
