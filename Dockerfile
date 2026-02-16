@@ -46,8 +46,9 @@ WORKDIR /app
 
 # Install Python and system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip \
+    python3 python3-pip python3-dev \
     && ln -s /usr/bin/python3 /usr/bin/python \
+    && pip3 install --no-cache-dir --upgrade pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install embedding-specific dependencies
