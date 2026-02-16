@@ -40,12 +40,14 @@ ENV PYTHONPATH=/app
 CMD ["python", "-m", "uvicorn", "src.graph.main:app", "--host", "0.0.0.0", "--port", "8081"]
 
 # Embedding service target
-FROM python:3.11-slim as embedding-base
+FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04 as embedding-base
 
 WORKDIR /app
 
-# Install system dependencies
+# Install Python and system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip \
+    && ln -s /usr/bin/python3 /usr/bin/python \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install embedding-specific dependencies
