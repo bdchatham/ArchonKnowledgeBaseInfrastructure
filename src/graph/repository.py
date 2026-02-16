@@ -716,50 +716,18 @@ class GraphRepository:
             raise GraphRepositoryError(f"Failed to upsert nodes: {e}") from e
 
     async def upsert_edges(self, edges: list[GraphEdge]) -> int:
-        """Bulk upsert edges.
-
-        Inserts new edges or ignores existing edges based on unique constraint.
-        Uses PostgreSQL's ON CONFLICT DO NOTHING clause for efficient upserts.
-        The operation is performed within a transaction for atomicity.
-
-        Edges are uniquely identified by (from_arn, to_arn, type). If an edge
-        with the same combination already exists, it is skipped.
-
-        Note: Both from_arn and to_arn must reference existing nodes due to
-        foreign key constraints. Attempting to create an edge with non-existent
-        nodes will raise a GraphRepositoryError.
-
-        Args:
-            edges: List of GraphEdge objects to upsert
-
-        Returns:
-            Number of edges created (excludes duplicates that were skipped)
-
-        Raises:
-            GraphRepositoryError: If database operation fails (including
-                foreign key violations for non-existent nodes)
-
-        Example:
-            edges = [
-                GraphEdge(
-                    from_arn="arn:archon:code:ws/pkg/file.py#Class",
-                    to_arn="arn:archon:code:ws/pkg/file.py#method",
-                    type=EdgeType.CONTAINS,
-                ),
-            ]
-            created = await repo.upsert_edges(edges)
-        """
+        """Bulk upsert edges, skipping any referencing non-existent nodes."""
         if not edges:
             return 0
 
         try:
             pool = await self._get_pool()
-
             created_count = 0
+            skipped_fk = 0
 
             async with pool.acquire() as conn:
-                async with conn.transaction():
-                    for edge in edges:
+                for edge in edges:
+                    try:
                         result = await conn.execute(
                             """
                             INSERT INTO code_graph_edges (from_arn, to_arn, type)
@@ -770,21 +738,18 @@ class GraphRepository:
                             edge.to_arn,
                             edge.type.value,
                         )
-
                         if result == "INSERT 0 1":
                             created_count += 1
+                    except asyncpg.ForeignKeyViolationError:
+                        skipped_fk += 1
 
             logger.info(
                 f"Upserted {len(edges)} edges: {created_count} created, "
-                f"{len(edges) - created_count} skipped (duplicates)"
+                f"{skipped_fk} skipped (missing nodes), "
+                f"{len(edges) - created_count - skipped_fk} skipped (duplicates)"
             )
             return created_count
 
-        except asyncpg.ForeignKeyViolationError as e:
-            logger.error(f"Failed to upsert edges - foreign key violation: {e}")
-            raise GraphRepositoryError(
-                f"Failed to upsert edges - referenced node does not exist: {e}"
-            ) from e
         except asyncpg.PostgresError as e:
             logger.error(f"Failed to upsert edges: {e}")
             raise GraphRepositoryError(f"Failed to upsert edges: {e}") from e
