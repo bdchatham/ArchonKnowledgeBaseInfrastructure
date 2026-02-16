@@ -9,9 +9,20 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, status
-from strawberry.asgi import GraphQL
+from strawberry.asgi import GraphQL as BaseGraphQL
 
 from src.graph.service import GraphQLService, GraphQLServiceConfig
+
+
+class GraphQL(BaseGraphQL):
+    """GraphQL ASGI app that injects the repository into resolver context."""
+
+    def __init__(self, schema, repository):
+        super().__init__(schema)
+        self._repository = repository
+
+    async def get_context(self, request, response=None):
+        return {"repository": self._repository}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -59,7 +70,7 @@ async def lifespan(app: FastAPI):
     service = GraphQLService(config)
     await service.connect()
 
-    graphql_app = GraphQL(service._schema)
+    graphql_app = GraphQL(service._schema, service.repository)
     app.mount("/graphql", graphql_app)
 
     logger.info("Graph service started")
