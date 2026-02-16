@@ -5,7 +5,3 @@ pydantic>=2.5.0
 
 # Sentence transformers for embedding generation
 sentence-transformers>=2.2.0
-
-# PyTorch with CUDA support
---extra-index-url https://download.pytorch.org/whl/cu121
-torch
