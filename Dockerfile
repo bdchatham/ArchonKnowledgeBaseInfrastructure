@@ -44,6 +44,8 @@ FROM pytorch/pytorch:2.10.0-cuda12.8-cudnn9-runtime AS embedding-base
 
 WORKDIR /app
 
+ENV PIP_BREAK_SYSTEM_PACKAGES=1
+
 # Upgrade torch to nightly for Blackwell sm_120 support (pinned for layer caching)
 RUN pip install --no-cache-dir torch==2.11.0.dev20260216+cu128 --index-url https://download.pytorch.org/whl/nightly/cu128
 
