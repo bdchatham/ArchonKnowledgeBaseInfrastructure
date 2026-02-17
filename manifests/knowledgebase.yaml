@@ -16,7 +16,47 @@ spec:
       branch: mainline
       sourceType: code
     - repoOrg: bdchatham
+      repoName: AphexCLI
+      branch: mainline
+      sourceType: code
+    - repoOrg: bdchatham
+      repoName: AphexKnowledgeBaseController
+      branch: mainline
+      sourceType: code
+    - repoOrg: bdchatham
+      repoName: AphexOrganizationController
+      branch: mainline
+      sourceType: code
+    - repoOrg: bdchatham
+      repoName: AphexPipelineResources
+      branch: mainline
+      sourceType: code
+    - repoOrg: bdchatham
+      repoName: AphexPlatformInfrastructure
+      branch: mainline
+      sourceType: code
+    - repoOrg: bdchatham
+      repoName: AphexRepoBindingController
+      branch: mainline
+      sourceType: code
+    - repoOrg: bdchatham
+      repoName: AphexServiceClients
+      branch: mainline
+      sourceType: code
+    - repoOrg: bdchatham
+      repoName: ArchonAgent
+      branch: mainline
+      sourceType: code
+    - repoOrg: bdchatham
       repoName: AphexKnowledgeBaseMCPTools
+      branch: mainline
+      sourceType: code
+    - repoOrg: bdchatham
+      repoName: ArchonKnowledgeBaseInfrastructure
+      branch: mainline
+      sourceType: code
+    - repoOrg: bdchatham
+      repoName: ArchonMCPServer
       branch: mainline
       sourceType: code
   mcp:
