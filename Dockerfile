@@ -40,19 +40,12 @@ ENV PYTHONPATH=/app
 CMD ["python", "-m", "uvicorn", "src.graph.main:app", "--host", "0.0.0.0", "--port", "8081"]
 
 # Embedding service target
-FROM nvidia/cuda:12.8.1-runtime-ubuntu22.04 AS embedding-base
+FROM pytorch/pytorch:2.10.0-cuda12.8-cudnn9-runtime AS embedding-base
 
 WORKDIR /app
 
-# Install Python and system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip python3-dev \
-    && ln -s /usr/bin/python3 /usr/bin/python \
-    && pip3 install --no-cache-dir --upgrade pip \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install PyTorch nightly with CUDA 12.8 (includes Blackwell sm_120 support)
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/nightly/cu128
+# Upgrade torch to nightly for Blackwell sm_120 support (pinned for layer caching)
+RUN pip install --no-cache-dir torch==2.11.0.dev20260216+cu128 --index-url https://download.pytorch.org/whl/nightly/cu128
 
 # Copy requirements and install remaining dependencies
 COPY requirements-embedding.txt .
@@ -68,7 +61,7 @@ COPY src/embedding/ ./src/embedding/
 RUN useradd --create-home --shell /bin/bash appuser
 USER appuser
 
-FROM embedding-base as embedding
+FROM embedding-base AS embedding
 
 EXPOSE 8000
 
