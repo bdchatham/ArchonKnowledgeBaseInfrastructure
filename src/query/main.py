@@ -232,21 +232,26 @@ async def get_document(request: DocumentRequest) -> DocumentResponse:
     
     try:
         from qdrant_client.models import Filter, FieldCondition, MatchValue
+        import asyncio
         
-        # Query all chunks for this document
-        results = await vector_store.client.scroll(
-            collection_name=vector_store.collection,
-            scroll_filter=Filter(
-                must=[
-                    FieldCondition(
-                        key="source",
-                        match=MatchValue(value=request.doc_id),
-                    )
-                ]
-            ),
-            limit=1000,  # Max chunks per document
-            with_payload=True,
-            with_vectors=False,
+        client = vector_store._get_client()
+        loop = asyncio.get_event_loop()
+        results = await loop.run_in_executor(
+            None,
+            lambda: client.scroll(
+                collection_name=vector_store.collection,
+                scroll_filter=Filter(
+                    must=[
+                        FieldCondition(
+                            key="source",
+                            match=MatchValue(value=request.doc_id),
+                        )
+                    ]
+                ),
+                limit=1000,
+                with_payload=True,
+                with_vectors=False,
+            )
         )
         
         if not results[0]:
